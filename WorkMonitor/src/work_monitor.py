@@ -1991,6 +1991,12 @@ class WorkMonitorApp:
         def on_hide_widget(icon, item):
             self.hide_overlay_widget()
 
+        def on_dashboard(icon, item):
+            self.open_dashboard()
+
+        def on_admin_panel(icon, item):
+            self.show_admin_panel()
+
         def on_exit(icon, item):
             icon.stop()
             self.quit_app()
@@ -2006,6 +2012,9 @@ class WorkMonitorApp:
             item('Show', on_show, default=True),
             pystray.Menu.SEPARATOR,
             get_widget_menu_item(),
+            pystray.Menu.SEPARATOR,
+            item('Open Dashboard', on_dashboard),
+            item('Admin Panel', on_admin_panel),
             pystray.Menu.SEPARATOR,
             item('Exit', on_exit)
         )
