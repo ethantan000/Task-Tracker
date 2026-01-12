@@ -89,29 +89,29 @@ class OverlayWidget:
         # Position: bottom-right corner (above taskbar) or saved position
         self.position_widget()
 
-        # Dark semi-transparent frame
-        self.frame = tk.Frame(self.root, bg='#1a1a2e', padx=10, pady=6)
+        # Apple-inspired frosted glass effect frame
+        self.frame = tk.Frame(self.root, bg='#2c2c2e', padx=12, pady=8)
         self.frame.pack(fill='both', expand=True)
 
         # Top row: Recording indicator
-        self.top_frame = tk.Frame(self.frame, bg='#1a1a2e')
-        self.top_frame.pack(fill='x', pady=(0, 4))
+        self.top_frame = tk.Frame(self.frame, bg='#2c2c2e')
+        self.top_frame.pack(fill='x', pady=(0, 6))
 
         self.rec_dot = tk.Label(
             self.top_frame,
             text="\u25CF",  # Solid circle
-            font=('Arial', 10),
-            fg='#ff0000',
-            bg='#1a1a2e'
+            font=('SF Pro Text', 10),
+            fg='#ff3b30',
+            bg='#2c2c2e'
         )
         self.rec_dot.pack(side='left')
 
         self.rec_label = tk.Label(
             self.top_frame,
             text=" REC",
-            font=('Consolas', 9, 'bold'),
-            fg='#ff0000',
-            bg='#1a1a2e'
+            font=('SF Pro Text', 9, 'bold'),
+            fg='#ff3b30',
+            bg='#2c2c2e'
         )
         self.rec_label.pack(side='left')
 
@@ -119,57 +119,57 @@ class OverlayWidget:
         self.minimize_btn = tk.Label(
             self.top_frame,
             text=" \u25BC ",  # Down arrow
-            font=('Arial', 8),
-            fg='#888888',
-            bg='#1a1a2e',
+            font=('SF Pro Text', 9),
+            fg='#8e8e93',
+            bg='#2c2c2e',
             cursor='hand2'
         )
-        self.minimize_btn.pack(side='left', padx=5)
+        self.minimize_btn.pack(side='left', padx=6)
         self.minimize_btn.bind('<Button-1>', lambda e: self.toggle_collapse())
 
         # Anti-cheat status (right side of top row)
         self.anticheat_label = tk.Label(
             self.top_frame,
-            text="Anti-Cheat: ON",
-            font=('Consolas', 9),
-            fg='#4CAF50',
-            bg='#1a1a2e'
+            text="Security: ON",
+            font=('SF Pro Text', 9),
+            fg='#34c759',
+            bg='#2c2c2e'
         )
         self.anticheat_label.pack(side='right')
 
         # Separator line
-        self.sep = tk.Frame(self.frame, bg='#333333', height=1)
-        self.sep.pack(fill='x', pady=4)
+        self.sep = tk.Frame(self.frame, bg='#48484a', height=1)
+        self.sep.pack(fill='x', pady=5)
 
         # Work time display (main)
         self.time_label = tk.Label(
             self.frame,
-            text="Work: 0:00:00",
-            font=('Consolas', 16, 'bold'),
-            fg='#4CAF50',
-            bg='#1a1a2e'
+            text="0:00:00",
+            font=('SF Mono', 18, 'bold'),
+            fg='#34c759',
+            bg='#2c2c2e'
         )
         self.time_label.pack()
 
         # Stats row
-        self.stats_frame = tk.Frame(self.frame, bg='#1a1a2e')
-        self.stats_frame.pack(fill='x', pady=(4, 0))
+        self.stats_frame = tk.Frame(self.frame, bg='#2c2c2e')
+        self.stats_frame.pack(fill='x', pady=(5, 0))
 
         self.idle_label = tk.Label(
             self.stats_frame,
             text="Idle: 0m",
-            font=('Consolas', 9),
-            fg='#ff9800',
-            bg='#1a1a2e'
+            font=('SF Pro Text', 10),
+            fg='#ff9f0a',
+            bg='#2c2c2e'
         )
         self.idle_label.pack(side='left')
 
         self.clock_label = tk.Label(
             self.stats_frame,
             text="00:00",
-            font=('Consolas', 9),
-            fg='#888888',
-            bg='#1a1a2e'
+            font=('SF Pro Text', 10),
+            fg='#8e8e93',
+            bg='#2c2c2e'
         )
         self.clock_label.pack(side='right')
 
@@ -177,19 +177,19 @@ class OverlayWidget:
         self.screenshots_label = tk.Label(
             self.frame,
             text="Screenshots: 0",
-            font=('Consolas', 9),
-            fg='#2196F3',
-            bg='#1a1a2e'
+            font=('SF Pro Text', 10),
+            fg='#007aff',
+            bg='#2c2c2e'
         )
-        self.screenshots_label.pack(pady=(2, 0))
+        self.screenshots_label.pack(pady=(3, 0))
 
         # Resize grip (bottom-right corner)
         self.resize_grip = tk.Label(
             self.frame,
             text="\u25E2",  # Lower-right corner symbol
-            font=('Arial', 10),
-            fg='#555555',
-            bg='#1a1a2e',
+            font=('SF Pro Text', 11),
+            fg='#636366',
+            bg='#2c2c2e',
             cursor='size_nw_se'
         )
         self.resize_grip.pack(side='right', anchor='se')
