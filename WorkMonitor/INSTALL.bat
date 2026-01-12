@@ -21,7 +21,7 @@ echo [OK] Python found!
 
 :: Install packages
 echo [*] Installing packages...
-python -m pip install pillow pystray --quiet
+python -m pip install pillow pystray schedule --quiet
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to install packages
     pause
@@ -30,8 +30,8 @@ if %errorlevel% neq 0 (
 echo [OK] Packages installed!
 
 :: Create directories
-if not exist "data" mkdir data
-if not exist "screenshots" mkdir screenshots
+if not exist ".cache" mkdir .cache
+if not exist ".tmp" mkdir .tmp
 echo [OK] Directories ready!
 
 echo.
