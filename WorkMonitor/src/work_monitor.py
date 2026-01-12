@@ -1341,6 +1341,14 @@ class WorkMonitorApp:
         self.root.configure(bg='#1a1a2e')
         self.root.protocol("WM_DELETE_WINDOW", self.minimize_to_tray)
 
+        # Set window icon
+        icon_path = BASE_DIR / "icon.ico"
+        if icon_path.exists():
+            try:
+                self.root.iconbitmap(str(icon_path))
+            except Exception as e:
+                print(f"Could not set window icon: {e}")
+
         self.setup_ui()
         self.start_monitoring()
 
@@ -1690,8 +1698,16 @@ class WorkMonitorApp:
         """Minimize to system tray"""
         self.root.withdraw()
 
-        # Create system tray icon
-        def create_image():
+        # Load icon from file
+        def get_icon_image():
+            icon_path = BASE_DIR / "icon.ico"
+            try:
+                if icon_path.exists():
+                    return Image.open(str(icon_path))
+            except Exception as e:
+                print(f"Could not load icon: {e}")
+
+            # Fallback: create a simple icon
             img = Image.new('RGB', (64, 64), color='#3498db')
             draw = ImageDraw.Draw(img)
             draw.ellipse([10, 10, 54, 54], fill='#2ecc71')
@@ -1710,7 +1726,7 @@ class WorkMonitorApp:
             item('Exit', on_exit)
         )
 
-        icon = pystray.Icon("WorkMonitor", create_image(), "Work Monitor", menu)
+        icon = pystray.Icon("WorkMonitor", get_icon_image(), "Work Monitor", menu)
         threading.Thread(target=icon.run, daemon=True).start()
 
     def quit_app(self):
@@ -1733,6 +1749,7 @@ class WorkMonitorApp:
 def setup_autostart():
     """Setup Windows autostart"""
     import winreg
+    import shutil
 
     key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
     app_path = os.path.abspath(__file__)
@@ -1741,12 +1758,22 @@ def setup_autostart():
     if getattr(sys, 'frozen', False):
         app_path = sys.executable
     else:
-        app_path = f'pythonw "{app_path}"'
+        # Find pythonw.exe in the same directory as python.exe
+        pythonw_exe = sys.executable.replace('python.exe', 'pythonw.exe')
+        if not os.path.exists(pythonw_exe):
+            # Try to find pythonw in PATH
+            pythonw_exe = shutil.which('pythonw')
+            if not pythonw_exe:
+                pythonw_exe = 'pythonw'  # Fallback to hoping it's in PATH
+
+        # Use absolute paths for both pythonw and script
+        app_path = f'"{pythonw_exe}" "{app_path}"'
 
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
         winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, app_path)
         winreg.CloseKey(key)
+        print(f"Autostart configured: {app_path}")
         return True
     except Exception as e:
         print(f"Autostart setup error: {e}")
