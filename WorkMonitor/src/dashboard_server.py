@@ -73,7 +73,7 @@ class DashboardServer:
 
             # Create request handler with base directory
             def handler(*args, **kwargs):
-                DashboardRequestHandler(*args, base_dir=self.base_dir, **kwargs)
+                return DashboardRequestHandler(*args, base_dir=self.base_dir, **kwargs)
 
             # Start HTTP server on all interfaces (0.0.0.0)
             self.server = HTTPServer(('0.0.0.0', port), handler)

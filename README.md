@@ -1,2 +1,2 @@
 # Task-Tracker
-Tracks Remote Worker Acitivty 
+Tracks Remote Worker Activity 

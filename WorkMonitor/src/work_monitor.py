@@ -828,6 +828,18 @@ class HTMLReportGenerator:
         # Monthly breakdown HTML with screenshots per day
         monthly_breakdown_html = generate_day_breakdown(month_summary.get('daily_data', []), 6)
 
+        # Pre-calculate conditional strings to avoid f-string nesting issues
+        idle_periods_count_text = "No idle periods" if not idle_periods else f"{len(idle_periods)} periods"
+        idle_periods_content = '<p style="opacity:0.6;">No idle periods recorded today</p>' if not idle_periods_html else f'''
+                <table>
+                    <tr><th>Left At</th><th>Returned At</th><th>Duration</th></tr>
+                    {idle_periods_html}
+                </table>
+                '''
+        screenshots_content = screenshots_html if screenshots_html else '<p style="opacity:0.6;">No screenshots yet today</p>'
+        weekly_daily_content = '<p style="opacity:0.6;">No data yet this week</p>' if not weekly_breakdown_html else weekly_breakdown_html
+        monthly_daily_content = '<p style="opacity:0.6;">No data yet this month</p>' if not monthly_breakdown_html else monthly_breakdown_html
+
         html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -917,15 +929,10 @@ class HTMLReportGenerator:
 
             <button class="collapsible" onclick="toggleDetails('idle-details')">
                 <span>Idle Periods (Left / Returned)</span>
-                <span>{'No idle periods' if not idle_periods else f'{len(idle_periods)} periods'}</span>
+                <span>{idle_periods_count_text}</span>
             </button>
             <div id="idle-details" class="collapsible-content">
-                {'<p style="opacity:0.6;">No idle periods recorded today</p>' if not idle_periods_html else f'''
-                <table>
-                    <tr><th>Left At</th><th>Returned At</th><th>Duration</th></tr>
-                    {idle_periods_html}
-                </table>
-                '''}
+                {idle_periods_content}
             </div>
 
             <button class="collapsible" onclick="toggleDetails('screenshots-details')">
@@ -933,7 +940,7 @@ class HTMLReportGenerator:
                 <span>{summary['screenshot_count']} total</span>
             </button>
             <div id="screenshots-details" class="collapsible-content">
-                {screenshots_html if screenshots_html else '<p style="opacity:0.6;">No screenshots yet today</p>'}
+                {screenshots_content}
             </div>
         </div>
 
@@ -948,7 +955,7 @@ class HTMLReportGenerator:
             </div>
             <div class="section">
                 <h2>Daily Breakdown</h2>
-                {f'<p style="opacity:0.6;">No data yet this week</p>' if not weekly_breakdown_html else weekly_breakdown_html}
+                {weekly_daily_content}
             </div>
         </div>
 
@@ -963,7 +970,7 @@ class HTMLReportGenerator:
             </div>
             <div class="section">
                 <h2>Daily Breakdown</h2>
-                {f'<p style="opacity:0.6;">No data yet this month</p>' if not monthly_breakdown_html else monthly_breakdown_html}
+                {monthly_daily_content}
             </div>
         </div>
 
