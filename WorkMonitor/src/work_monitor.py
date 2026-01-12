@@ -14,6 +14,7 @@ import time
 import hashlib
 import threading
 import base64
+import logging
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from datetime import datetime, timedelta
@@ -26,6 +27,17 @@ from collections import deque
 import psutil
 from email_reports import EmailReportSender
 from dashboard_server import DashboardServer
+
+# Configure logging
+logging.basicConfig(
+    level=logging.ERROR,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(Path(__file__).parent.parent / ".cache" / "work_monitor.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Try to import required packages
 try:
@@ -64,7 +76,8 @@ def decode_data(encoded_str):
     try:
         json_str = base64.b64decode(encoded_str.encode()).decode()
         return json.loads(json_str)
-    except:
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as e:
+        logger.error(f"Failed to decode data: {e}")
         return None
 
 def get_log_filename(date_str):
@@ -82,8 +95,8 @@ def date_from_log_filename(filename):
             if padding != 4:
                 encoded += '=' * padding
             return base64.b64decode(encoded.encode()).decode()
-    except:
-        pass
+    except (ValueError, UnicodeDecodeError) as e:
+        logger.error(f"Failed to decode filename '{filename}': {e}")
     return None
 
 # Default configuration
@@ -194,8 +207,8 @@ class AntiCheatDetector:
 
                             if regularity > self.config.get('max_jitter_regularity'):
                                 return True, regularity * 100, f"Regular micro-movements detected (regularity: {regularity:.1%})"
-                    except:
-                        pass
+                    except statistics.StatisticsError as e:
+                        logger.error(f"Failed to calculate interval statistics: {e}")
 
             # Check 3: Oscillating pattern (back and forth)
             if len(recent) >= 6:
@@ -264,8 +277,8 @@ class AntiCheatDetector:
                 self.last_window_change = time.time()
                 self.window_change_count += 1
                 return True
-        except:
-            pass
+        except (OSError, AttributeError) as e:
+            logger.error(f"Failed to get active window: {e}")
         return False
 
     def analyze(self):
@@ -349,7 +362,8 @@ class KeyboardTracker:
                 self.last_key_state[vk] = state
 
             return self.key_count
-        except:
+        except (OSError, AttributeError) as e:
+            logger.error(f"Failed to check keyboard state: {e}")
             return 0
 
     def get_idle_seconds(self):
@@ -426,9 +440,10 @@ class MouseTracker:
 
 
 class Config:
-    """Configuration manager"""
+    """Configuration manager with thread safety"""
 
     def __init__(self):
+        self._lock = threading.Lock()
         self.config = self.load()
 
     def load(self):
@@ -440,20 +455,30 @@ class Config:
                     loaded = decode_data(encoded)
                     if loaded:
                         return {**DEFAULT_CONFIG, **loaded}
-            except:
+            except (IOError, OSError) as e:
+                logger.error(f"Failed to load config from {CONFIG_FILE}: {e}")
                 return DEFAULT_CONFIG.copy()
         return DEFAULT_CONFIG.copy()
 
     def save(self):
-        """Save configuration to file (base64 encoded)"""
-        with open(CONFIG_FILE, 'w') as f:
-            f.write(encode_data(self.config))
+        """Save configuration to file using atomic write (base64 encoded)"""
+        with self._lock:
+            try:
+                # Atomic write: write to temp file, then rename
+                temp_file = CONFIG_FILE.with_suffix('.tmp')
+                with open(temp_file, 'w') as f:
+                    f.write(encode_data(self.config))
+                temp_file.replace(CONFIG_FILE)
+            except (IOError, OSError) as e:
+                logger.error(f"Failed to save config: {e}")
 
     def get(self, key):
-        return self.config.get(key, DEFAULT_CONFIG.get(key))
+        with self._lock:
+            return self.config.get(key, DEFAULT_CONFIG.get(key))
 
     def set(self, key, value):
-        self.config[key] = value
+        with self._lock:
+            self.config[key] = value
         self.save()
 
     def verify_password(self, password):
@@ -467,9 +492,10 @@ class Config:
 
 
 class ActivityLogger:
-    """Log and track activity data"""
+    """Log and track activity data with thread safety"""
 
     def __init__(self):
+        self._lock = threading.Lock()
         self.today_log = self.load_today()
 
     def get_today_file(self):
@@ -487,8 +513,8 @@ class ActivityLogger:
                     data = decode_data(encoded)
                     if data:
                         return data
-            except:
-                pass
+            except (IOError, OSError) as e:
+                logger.error(f"Failed to load today's log from {log_file}: {e}")
 
         return {
             "date": datetime.now().strftime("%Y-%m-%d"),
@@ -507,77 +533,94 @@ class ActivityLogger:
         }
 
     def save(self):
-        """Save today's log (base64 encoded)"""
-        log_file = self.get_today_file()
-        with open(log_file, 'w') as f:
-            f.write(encode_data(self.today_log))
+        """Save today's log using atomic write (base64 encoded)"""
+        with self._lock:
+            try:
+                log_file = self.get_today_file()
+                # Atomic write: write to temp file, then rename
+                temp_file = log_file.with_suffix('.tmp')
+                with open(temp_file, 'w') as f:
+                    f.write(encode_data(self.today_log))
+                temp_file.replace(log_file)
+            except (IOError, OSError) as e:
+                logger.error(f"Failed to save activity log: {e}")
 
     def add_work_time(self, seconds):
         """Add work time (only during office hours)"""
-        self.today_log["work_seconds"] += seconds
+        with self._lock:
+            self.today_log["work_seconds"] += seconds
         self.save()
 
     def add_idle_time(self, seconds):
         """Add idle time"""
-        self.today_log["idle_seconds"] += seconds
+        with self._lock:
+            self.today_log["idle_seconds"] += seconds
         self.save()
 
     def add_screenshot(self, filepath, is_suspicious=False):
         """Record screenshot"""
-        self.today_log["screenshots"].append({
-            "time": datetime.now().isoformat(),
-            "path": str(filepath),
-            "suspicious": is_suspicious
-        })
+        with self._lock:
+            self.today_log["screenshots"].append({
+                "time": datetime.now().isoformat(),
+                "path": str(filepath),
+                "suspicious": is_suspicious
+            })
         self.save()
 
     def add_suspicious_time(self, seconds, reason=""):
         """Add time flagged as suspicious activity"""
-        self.today_log["suspicious_seconds"] += seconds
-        if reason:
-            self.today_log["suspicious_events"].append({
-                "time": datetime.now().isoformat(),
-                "duration": seconds,
-                "reason": reason
-            })
+        with self._lock:
+            self.today_log["suspicious_seconds"] += seconds
+            if reason:
+                self.today_log["suspicious_events"].append({
+                    "time": datetime.now().isoformat(),
+                    "duration": seconds,
+                    "reason": reason
+                })
         self.save()
 
     def update_activity_counts(self, keyboard_count, window_count):
         """Update keyboard and window activity counts"""
-        self.today_log["keyboard_activity_count"] = keyboard_count
-        self.today_log["window_change_count"] = window_count
+        with self._lock:
+            self.today_log["keyboard_activity_count"] = keyboard_count
+            self.today_log["window_change_count"] = window_count
         self.save()
 
     def start_idle_period(self):
         """Mark the start of an idle period (person left)"""
-        if self.today_log.get("current_idle_start") is None:
-            self.today_log["current_idle_start"] = datetime.now().isoformat()
-            self.save()
+        with self._lock:
+            if self.today_log.get("current_idle_start") is None:
+                self.today_log["current_idle_start"] = datetime.now().isoformat()
+        self.save()
 
     def end_idle_period(self):
         """Mark the end of an idle period (person returned)"""
-        if self.today_log.get("current_idle_start") is not None:
-            start_time = self.today_log["current_idle_start"]
-            end_time = datetime.now().isoformat()
-            start_dt = datetime.fromisoformat(start_time)
-            end_dt = datetime.now()
-            duration_seconds = (end_dt - start_dt).total_seconds()
+        with self._lock:
+            if self.today_log.get("current_idle_start") is not None:
+                start_time = self.today_log["current_idle_start"]
+                end_time = datetime.now().isoformat()
+                start_dt = datetime.fromisoformat(start_time)
+                end_dt = datetime.now()
+                duration_seconds = (end_dt - start_dt).total_seconds()
 
-            if duration_seconds > 60:  # Only log if > 1 minute
-                if "idle_periods" not in self.today_log:
-                    self.today_log["idle_periods"] = []
-                self.today_log["idle_periods"].append({
-                    "left": start_time,
-                    "returned": end_time,
-                    "duration_seconds": duration_seconds
-                })
-            self.today_log["current_idle_start"] = None
-            self.save()
+                if duration_seconds > 60:  # Only log if > 1 minute
+                    if "idle_periods" not in self.today_log:
+                        self.today_log["idle_periods"] = []
+                    self.today_log["idle_periods"].append({
+                        "left": start_time,
+                        "returned": end_time,
+                        "duration_seconds": duration_seconds
+                    })
+                self.today_log["current_idle_start"] = None
+        self.save()
 
     def get_idle_periods(self):
         """Get list of idle periods with formatted times"""
         periods = []
-        for period in self.today_log.get("idle_periods", []):
+        with self._lock:
+            idle_periods = self.today_log.get("idle_periods", []).copy()
+
+        for period in idle_periods:
             try:
                 left_dt = datetime.fromisoformat(period["left"])
                 returned_dt = datetime.fromisoformat(period["returned"])
@@ -587,8 +630,8 @@ class ActivityLogger:
                     "returned": returned_dt.strftime("%I:%M:%S %p"),
                     "duration": f"{duration_mins} min"
                 })
-            except:
-                pass
+            except (ValueError, KeyError, TypeError) as e:
+                logger.error(f"Failed to format idle period {period}: {e}")
         return periods
 
     @staticmethod
@@ -600,8 +643,8 @@ class ActivityLogger:
                 with open(log_file, 'r') as f:
                     encoded = f.read()
                     return decode_data(encoded)
-            except:
-                pass
+            except (IOError, OSError) as e:
+                logger.error(f"Failed to load log for date {date_str}: {e}")
         return None
 
     @staticmethod
@@ -731,8 +774,8 @@ class ScreenshotManager:
                 if file_date < cutoff:
                     file.unlink()
                     removed_screenshots += 1
-            except:
-                pass
+            except (ValueError, IndexError, OSError) as e:
+                logger.error(f"Failed to clean screenshot {file}: {e}")
 
         # Clean old log files
         for file in DATA_DIR.glob("d*.dat"):
@@ -741,8 +784,8 @@ class ScreenshotManager:
                 if date_str and date_str < cutoff_str:
                     file.unlink()
                     removed_logs += 1
-            except:
-                pass
+            except OSError as e:
+                logger.error(f"Failed to clean log file {file}: {e}")
 
         return removed_screenshots + removed_logs
 
@@ -1884,8 +1927,8 @@ class WorkMonitorApp:
                 print(f"Failed to stop overlay widget gracefully: {e}")
                 try:
                     self.overlay_process.kill()
-                except:
-                    pass
+                except (OSError, ProcessLookupError) as kill_error:
+                    logger.error(f"Failed to kill overlay process: {kill_error}")
             finally:
                 self.overlay_process = None
 
@@ -1994,8 +2037,8 @@ class WorkMonitorApp:
         if lock_file.exists():
             try:
                 lock_file.unlink()
-            except:
-                pass
+            except OSError as e:
+                logger.error(f"Failed to remove lock file: {e}")
 
         self.root.quit()
         self.root.destroy()
