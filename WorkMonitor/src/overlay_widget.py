@@ -266,7 +266,7 @@ class OverlayWidget:
         self.idle_label.config(text=f"Idle: {idle_mins}m", fg='#e74c3c' if is_idle else '#ff9800')
 
         # Current time
-        now = datetime.now().strftime("%H:%M")
+        now = datetime.now().strftime("%I:%M %p")
         self.clock_label.config(text=now)
 
         # Screenshots
