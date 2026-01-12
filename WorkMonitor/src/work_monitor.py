@@ -23,6 +23,7 @@ from ctypes import wintypes
 import math
 import statistics
 from collections import deque
+import psutil
 from email_reports import EmailReportSender
 from dashboard_server import DashboardServer
 
@@ -1024,7 +1025,7 @@ class HTMLReportGenerator:
 
 
 class AdminPanel(tk.Toplevel):
-    """Admin configuration panel"""
+    """Admin configuration panel with Apple-inspired design"""
 
     def __init__(self, parent, config, logger=None, email_sender=None, dashboard_server=None):
         super().__init__(parent)
@@ -1032,171 +1033,215 @@ class AdminPanel(tk.Toplevel):
         self.logger = logger
         self.email_sender = email_sender
         self.dashboard_server = dashboard_server
-        self.title("Admin Panel - Work Monitor")
-        self.geometry("600x850")
-        self.configure(bg='#2c3e50')
-        self.resizable(False, False)
+        self.title("Settings - WorkMonitor")
+        self.geometry("700x900")
+        self.configure(bg='#f5f5f7')
+        self.resizable(True, True)
+        self.minsize(700, 900)
 
         self.create_widgets()
 
     def create_widgets(self):
+        """Create admin panel widgets with modern, sectioned design"""
+        # Main scrollable container
+        canvas = tk.Canvas(self, bg='#f5f5f7', highlightthickness=0)
+        scrollbar = tk.Scrollbar(self, orient='vertical', command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg='#f5f5f7')
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side='left', fill='both', expand=True, padx=30, pady=30)
+        scrollbar.pack(side='right', fill='y')
+
         # Title
-        title = tk.Label(self, text="Admin Settings", font=('Segoe UI', 18, 'bold'),
-                        bg='#2c3e50', fg='white')
-        title.pack(pady=15)
+        title = tk.Label(scrollable_frame, text="Settings",
+                        font=('SF Pro Display', 26, 'bold'),
+                        bg='#f5f5f7', fg='#1d1d1f')
+        title.pack(pady=(0, 30))
 
-        # Scrollable frame for settings
-        frame = tk.Frame(self, bg='#2c3e50')
-        frame.pack(padx=30, pady=5, fill='x')
+        # SECTION 1: Work Hours
+        self._create_section(scrollable_frame, "Work Hours", "Configure your daily work schedule")
+        work_card = self._create_card(scrollable_frame)
 
-        # Work Hours Row
-        tk.Label(frame, text="Work Hours:", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10, 'bold')).pack(anchor='w', pady=(5, 2))
+        hours_frame = tk.Frame(work_card, bg='#ffffff')
+        hours_frame.pack(fill='x', pady=8)
 
-        hours_frame = tk.Frame(frame, bg='#2c3e50')
-        hours_frame.pack(fill='x')
+        # Start time
+        start_label = tk.Label(hours_frame, text="Start Time", font=('SF Pro Text', 13),
+                              bg='#ffffff', fg='#86868b')
+        start_label.pack(side='left')
 
-        tk.Label(hours_frame, text="Start:", bg='#2c3e50', fg='white').pack(side='left')
-        self.start_hour = tk.Entry(hours_frame, font=('Segoe UI', 10), width=4)
+        start_inputs = tk.Frame(hours_frame, bg='#ffffff')
+        start_inputs.pack(side='right')
+
+        self.start_hour = tk.Entry(start_inputs, font=('SF Pro Text', 13), width=4,
+                                   relief='solid', bd=1)
         self.start_hour.insert(0, str(self.config.get('work_start_hour')))
         self.start_hour.pack(side='left', padx=2)
-        tk.Label(hours_frame, text=":", bg='#2c3e50', fg='white').pack(side='left')
-        self.start_minute = tk.Entry(hours_frame, font=('Segoe UI', 10), width=4)
+        tk.Label(start_inputs, text=":", bg='#ffffff', font=('SF Pro Text', 13)).pack(side='left')
+        self.start_minute = tk.Entry(start_inputs, font=('SF Pro Text', 13), width=4,
+                                     relief='solid', bd=1)
         self.start_minute.insert(0, str(self.config.get('work_start_minute')))
         self.start_minute.pack(side='left', padx=2)
 
-        tk.Label(hours_frame, text="   End:", bg='#2c3e50', fg='white').pack(side='left')
-        self.end_hour = tk.Entry(hours_frame, font=('Segoe UI', 10), width=4)
+        # End time
+        end_frame = tk.Frame(work_card, bg='#ffffff')
+        end_frame.pack(fill='x', pady=8)
+
+        end_label = tk.Label(end_frame, text="End Time", font=('SF Pro Text', 13),
+                            bg='#ffffff', fg='#86868b')
+        end_label.pack(side='left')
+
+        end_inputs = tk.Frame(end_frame, bg='#ffffff')
+        end_inputs.pack(side='right')
+
+        self.end_hour = tk.Entry(end_inputs, font=('SF Pro Text', 13), width=4,
+                                relief='solid', bd=1)
         self.end_hour.insert(0, str(self.config.get('work_end_hour')))
         self.end_hour.pack(side='left', padx=2)
-        tk.Label(hours_frame, text=":", bg='#2c3e50', fg='white').pack(side='left')
-        self.end_minute = tk.Entry(hours_frame, font=('Segoe UI', 10), width=4)
+        tk.Label(end_inputs, text=":", bg='#ffffff', font=('SF Pro Text', 13)).pack(side='left')
+        self.end_minute = tk.Entry(end_inputs, font=('SF Pro Text', 13), width=4,
+                                   relief='solid', bd=1)
         self.end_minute.insert(0, str(self.config.get('work_end_minute')))
         self.end_minute.pack(side='left', padx=2)
 
-        # Screenshot Interval
-        tk.Label(frame, text="Screenshot Interval (minutes):", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(15, 2))
-        self.screenshot_interval = tk.Entry(frame, font=('Segoe UI', 11))
-        self.screenshot_interval.insert(0, str(self.config.get('screenshot_interval_minutes')))
-        self.screenshot_interval.pack(fill='x')
+        # SECTION 2: Monitoring Settings
+        self._create_section(scrollable_frame, "Monitoring", "Configure activity tracking parameters")
+        monitoring_card = self._create_card(scrollable_frame)
 
-        # Idle Start Threshold
-        tk.Label(frame, text="Start Counting Idle After (seconds):", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(15, 2))
-        self.idle_start = tk.Entry(frame, font=('Segoe UI', 11))
-        self.idle_start.insert(0, str(self.config.get('idle_start_seconds')))
-        self.idle_start.pack(fill='x')
+        self._create_input_row(monitoring_card, "Screenshot Interval", "minutes",
+                               'screenshot_interval_minutes', self)
+        self._create_input_row(monitoring_card, "Idle Threshold", "seconds",
+                               'idle_start_seconds', self, 'idle_start')
+        self._create_input_row(monitoring_card, "Warning Screen", "seconds",
+                               'warning_screen_seconds', self, 'warning_screen')
 
-        # Warning Screen Threshold
-        tk.Label(frame, text="Show Warning Screen After (seconds):", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(15, 2))
-        self.warning_screen = tk.Entry(frame, font=('Segoe UI', 11))
-        self.warning_screen.insert(0, str(self.config.get('warning_screen_seconds')))
-        self.warning_screen.pack(fill='x')
+        # SECTION 3: Email Reports
+        self._create_section(scrollable_frame, "Email Reports", "Weekly activity reports via email")
+        email_card = self._create_card(scrollable_frame)
 
-        # Email Settings Section
-        tk.Label(frame, text="━━━━━━━━━━━━━━━━━━━━━━", bg='#2c3e50', fg='#666',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(20, 5))
-        tk.Label(frame, text="📧 Weekly Email Reports", bg='#2c3e50', fg='#3498db',
-                font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(5, 10))
-
-        # Enable Email Reports
         self.email_enabled = tk.BooleanVar(value=self.config.get('email_enabled'))
-        tk.Checkbutton(frame, text="Enable Weekly Email Reports (Fridays 5:30 PM)",
-                      variable=self.email_enabled, bg='#2c3e50', fg='white',
-                      selectcolor='#34495e', font=('Segoe UI', 10)).pack(anchor='w', pady=5)
+        enable_check = tk.Checkbutton(email_card, text="Enable Weekly Email Reports (Fridays 5:30 PM)",
+                                      variable=self.email_enabled, bg='#ffffff',
+                                      font=('SF Pro Text', 13), fg='#1d1d1f',
+                                      activebackground='#ffffff', selectcolor='#f5f5f7')
+        enable_check.pack(anchor='w', pady=8)
 
-        # Email To
-        tk.Label(frame, text="Send Report To (Email):", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
-        self.email_to = tk.Entry(frame, font=('Segoe UI', 11))
-        self.email_to.insert(0, str(self.config.get('email_to')))
-        self.email_to.pack(fill='x')
+        self._create_input_row(email_card, "Recipient Email", "", 'email_to', self)
+        self._create_input_row(email_card, "SMTP Server", "", 'smtp_server', self)
+        self._create_input_row(email_card, "SMTP Port", "", 'smtp_port', self)
+        self._create_input_row(email_card, "SMTP Username", "", 'smtp_username', self)
 
-        # SMTP Server
-        tk.Label(frame, text="SMTP Server:", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
-        self.smtp_server = tk.Entry(frame, font=('Segoe UI', 11))
-        self.smtp_server.insert(0, str(self.config.get('smtp_server')))
-        self.smtp_server.pack(fill='x')
-
-        # SMTP Port
-        tk.Label(frame, text="SMTP Port:", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
-        self.smtp_port = tk.Entry(frame, font=('Segoe UI', 11))
-        self.smtp_port.insert(0, str(self.config.get('smtp_port')))
-        self.smtp_port.pack(fill='x')
-
-        # SMTP Username
-        tk.Label(frame, text="SMTP Username/Email:", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
-        self.smtp_username = tk.Entry(frame, font=('Segoe UI', 11))
-        self.smtp_username.insert(0, str(self.config.get('smtp_username')))
-        self.smtp_username.pack(fill='x')
-
-        # SMTP Password
-        tk.Label(frame, text="SMTP Password:", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
-        self.smtp_password = tk.Entry(frame, font=('Segoe UI', 11), show='*')
+        # Password field (special handling)
+        pwd_frame = tk.Frame(email_card, bg='#ffffff')
+        pwd_frame.pack(fill='x', pady=8)
+        tk.Label(pwd_frame, text="SMTP Password", font=('SF Pro Text', 13),
+                bg='#ffffff', fg='#86868b').pack(side='left')
+        self.smtp_password = tk.Entry(pwd_frame, font=('SF Pro Text', 13), show='*',
+                                      relief='solid', bd=1, width=20)
         self.smtp_password.insert(0, str(self.config.get('smtp_password')))
-        self.smtp_password.pack(fill='x')
+        self.smtp_password.pack(side='right')
 
-        # Network Dashboard Settings Section
-        tk.Label(frame, text="━━━━━━━━━━━━━━━━━━━━━━", bg='#2c3e50', fg='#666',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(20, 5))
-        tk.Label(frame, text="🌐 Network Dashboard Access", bg='#2c3e50', fg='#3498db',
-                font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(5, 10))
+        # Test email button in card
+        test_email_btn = tk.Button(email_card, text="Send Test Email",
+                                   command=self.send_test_email,
+                                   bg='#007aff', fg='white', font=('SF Pro Text', 12, 'bold'),
+                                   relief='flat', bd=0, padx=20, pady=10,
+                                   cursor='hand2', activebackground='#0051d5')
+        test_email_btn.pack(pady=(12, 8))
 
-        # Enable Network Access
+        # SECTION 4: Network Dashboard
+        self._create_section(scrollable_frame, "Network Access", "Remote dashboard accessibility")
+        network_card = self._create_card(scrollable_frame)
+
         self.dashboard_server_enabled = tk.BooleanVar(value=self.config.get('dashboard_server_enabled'))
-        tk.Checkbutton(frame, text="Enable Network Access to Dashboard",
-                      variable=self.dashboard_server_enabled, bg='#2c3e50', fg='white',
-                      selectcolor='#34495e', font=('Segoe UI', 10)).pack(anchor='w', pady=5)
+        network_check = tk.Checkbutton(network_card, text="Enable Network Access to Dashboard",
+                                       variable=self.dashboard_server_enabled, bg='#ffffff',
+                                       font=('SF Pro Text', 13), fg='#1d1d1f',
+                                       activebackground='#ffffff', selectcolor='#f5f5f7')
+        network_check.pack(anchor='w', pady=8)
 
-        # Dashboard Port
-        tk.Label(frame, text="Dashboard Port:", bg='#2c3e50', fg='white',
-                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
-        self.dashboard_port = tk.Entry(frame, font=('Segoe UI', 11))
-        self.dashboard_port.insert(0, str(self.config.get('dashboard_port')))
-        self.dashboard_port.pack(fill='x')
+        self._create_input_row(network_card, "Dashboard Port", "", 'dashboard_port', self)
 
-        # Display network URL if server is running
         if self.dashboard_server and self.dashboard_server.is_running():
             url = self.dashboard_server.get_access_url()
             if url:
-                url_label = tk.Label(frame, text=f"📡 Access at: {url}", bg='#2c3e50', fg='#2ecc71',
-                                    font=('Segoe UI', 10, 'bold'))
-                url_label.pack(anchor='w', pady=(5, 0))
+                url_frame = tk.Frame(network_card, bg='#e8f5e9', relief='flat', bd=0)
+                url_frame.pack(fill='x', pady=8)
+                tk.Label(url_frame, text=f"✓ Active at: {url}",
+                        bg='#e8f5e9', fg='#2e7d32',
+                        font=('SF Pro Text', 12, 'bold')).pack(padx=12, pady=8)
 
-        # Buttons Row 1
-        btn_frame1 = tk.Frame(self, bg='#2c3e50')
-        btn_frame1.pack(pady=15)
+        # Action Buttons Section
+        buttons_frame = tk.Frame(scrollable_frame, bg='#f5f5f7')
+        buttons_frame.pack(fill='x', pady=(30, 0))
 
-        save_btn = tk.Button(btn_frame1, text="Save Settings", command=self.save_settings,
-                            bg='#27ae60', fg='white', font=('Segoe UI', 10, 'bold'),
-                            padx=15, pady=8)
-        save_btn.pack(side='left', padx=5)
+        # Primary actions
+        primary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
+        primary_row.pack(fill='x', pady=(0, 10))
 
-        pwd_btn = tk.Button(btn_frame1, text="Change Password", command=self.change_password,
-                           bg='#3498db', fg='white', font=('Segoe UI', 10, 'bold'),
-                           padx=15, pady=8)
-        pwd_btn.pack(side='left', padx=5)
+        save_btn = tk.Button(primary_row, text="Save Settings", command=self.save_settings,
+                            bg='#34c759', fg='white', font=('SF Pro Text', 13, 'bold'),
+                            relief='flat', bd=0, padx=30, pady=14,
+                            cursor='hand2', activebackground='#2da94a')
+        save_btn.pack(side='left', expand=True, fill='x', padx=(0, 5))
 
-        # Buttons Row 2 (Email Test)
-        btn_frame2 = tk.Frame(self, bg='#2c3e50')
-        btn_frame2.pack(pady=5)
+        pwd_btn = tk.Button(primary_row, text="Change Password", command=self.change_password,
+                           bg='#007aff', fg='white', font=('SF Pro Text', 13, 'bold'),
+                           relief='flat', bd=0, padx=30, pady=14,
+                           cursor='hand2', activebackground='#0051d5')
+        pwd_btn.pack(side='left', expand=True, fill='x', padx=(5, 0))
 
-        test_email_btn = tk.Button(btn_frame2, text="📧 Send Test Email", command=self.send_test_email,
-                                   bg='#16a085', fg='white', font=('Segoe UI', 10, 'bold'),
-                                   padx=20, pady=8)
-        test_email_btn.pack(side='left', padx=5)
+        # Danger zone
+        reset_btn = tk.Button(buttons_frame, text="Reset All Data", command=self.reset_all,
+                             bg='#ff3b30', fg='white', font=('SF Pro Text', 13, 'bold'),
+                             relief='flat', bd=0, padx=30, pady=14,
+                             cursor='hand2', activebackground='#d62f25')
+        reset_btn.pack(fill='x')
 
-        # Reset Button
-        reset_btn = tk.Button(self, text="Reset Everything", command=self.reset_all,
-                             bg='#e74c3c', fg='white', font=('Segoe UI', 10, 'bold'),
-                             padx=20, pady=8)
-        reset_btn.pack(pady=10)
+    def _create_section(self, parent, title, subtitle):
+        """Create a section header"""
+        section_frame = tk.Frame(parent, bg='#f5f5f7')
+        section_frame.pack(fill='x', pady=(20, 12))
+
+        tk.Label(section_frame, text=title, font=('SF Pro Display', 20, 'bold'),
+                bg='#f5f5f7', fg='#1d1d1f').pack(anchor='w')
+        tk.Label(section_frame, text=subtitle, font=('SF Pro Text', 13),
+                bg='#f5f5f7', fg='#86868b').pack(anchor='w', pady=(2, 0))
+
+    def _create_card(self, parent):
+        """Create a card container"""
+        card = tk.Frame(parent, bg='#ffffff', relief='flat', bd=0)
+        card.pack(fill='x', pady=(0, 20))
+
+        inner = tk.Frame(card, bg='#ffffff')
+        inner.pack(fill='x', padx=20, pady=16)
+        return inner
+
+    def _create_input_row(self, parent, label, unit, config_key, obj, attr_name=None):
+        """Create an input row with label and entry"""
+        row = tk.Frame(parent, bg='#ffffff')
+        row.pack(fill='x', pady=8)
+
+        label_text = f"{label} ({unit})" if unit else label
+        tk.Label(row, text=label_text, font=('SF Pro Text', 13),
+                bg='#ffffff', fg='#86868b').pack(side='left')
+
+        entry = tk.Entry(row, font=('SF Pro Text', 13), relief='solid', bd=1, width=20)
+        entry.insert(0, str(self.config.get(config_key)))
+        entry.pack(side='right')
+
+        # Store reference
+        if attr_name:
+            setattr(obj, attr_name, entry)
+        else:
+            setattr(obj, config_key.replace('_', ''), entry)
 
     def save_settings(self):
         try:
@@ -1204,56 +1249,92 @@ class AdminPanel(tk.Toplevel):
             self.config.set('work_start_minute', int(self.start_minute.get()))
             self.config.set('work_end_hour', int(self.end_hour.get()))
             self.config.set('work_end_minute', int(self.end_minute.get()))
-            self.config.set('screenshot_interval_minutes', int(self.screenshot_interval.get()))
+            self.config.set('screenshot_interval_minutes', int(self.screenshotintervalminutes.get()))
             self.config.set('idle_start_seconds', int(self.idle_start.get()))
             self.config.set('warning_screen_seconds', int(self.warning_screen.get()))
 
             # Save email settings
             self.config.set('email_enabled', self.email_enabled.get())
-            self.config.set('email_to', self.email_to.get())
-            self.config.set('email_from', self.smtp_username.get())  # Use SMTP username as from address
-            self.config.set('smtp_server', self.smtp_server.get())
-            self.config.set('smtp_port', int(self.smtp_port.get()))
-            self.config.set('smtp_username', self.smtp_username.get())
+            self.config.set('email_to', self.emailto.get())
+            self.config.set('email_from', self.smtpusername.get())  # Use SMTP username as from address
+            self.config.set('smtp_server', self.smtpserver.get())
+            self.config.set('smtp_port', int(self.smtpport.get()))
+            self.config.set('smtp_username', self.smtpusername.get())
             self.config.set('smtp_password', self.smtp_password.get())
 
             # Save network dashboard settings
             self.config.set('dashboard_server_enabled', self.dashboard_server_enabled.get())
-            self.config.set('dashboard_port', int(self.dashboard_port.get()))
+            self.config.set('dashboard_port', int(self.dashboardport.get()))
 
-            messagebox.showinfo("Success", "Settings saved successfully! Restart the app to apply changes.")
+            messagebox.showinfo("Success", "✓ Settings saved successfully!\n\nRestart the app to apply changes.")
             self.destroy()
-        except ValueError:
-            messagebox.showerror("Error", "Please enter valid numbers")
+        except ValueError as e:
+            messagebox.showerror("Error", f"Please enter valid numbers in all fields.\n\nDetails: {str(e)}")
 
     def send_test_email(self):
-        """Send a test email to verify configuration"""
+        """Send a test email to verify configuration with enhanced feedback"""
         # First save the current settings temporarily
         try:
             self.config.set('email_enabled', self.email_enabled.get())
-            self.config.set('email_to', self.email_to.get())
-            self.config.set('email_from', self.smtp_username.get())
-            self.config.set('smtp_server', self.smtp_server.get())
-            self.config.set('smtp_port', int(self.smtp_port.get()))
-            self.config.set('smtp_username', self.smtp_username.get())
+            self.config.set('email_to', self.emailto.get())
+            self.config.set('email_from', self.smtpusername.get())
+            self.config.set('smtp_server', self.smtpserver.get())
+            self.config.set('smtp_port', int(self.smtpport.get()))
+            self.config.set('smtp_username', self.smtpusername.get())
             self.config.set('smtp_password', self.smtp_password.get())
 
             if not self.email_sender:
-                messagebox.showerror("Error", "Email sender not initialized!")
+                messagebox.showerror("Error", "❌ Email sender not initialized!")
+                return
+
+            # Validate email fields
+            if not self.emailto.get() or '@' not in self.emailto.get():
+                messagebox.showerror("Error", "❌ Please enter a valid recipient email address")
+                return
+
+            if not self.smtpusername.get() or not self.smtp_password.get():
+                messagebox.showerror("Error", "❌ Please enter SMTP username and password")
                 return
 
             # Try to send test email
-            messagebox.showinfo("Sending", "Sending test email... This may take a few seconds.")
-            success = self.email_sender.send_test_email()
+            result = messagebox.askokcancel("Send Test Email",
+                                           f"Send a test email to:\n{self.emailto.get()}\n\nThis may take a few seconds.",
+                                           icon='question')
 
-            if success:
-                messagebox.showinfo("Success", "Test email sent successfully! Check your inbox.")
-            else:
-                messagebox.showerror("Error", "Failed to send test email. Check the console for details.")
+            if not result:
+                return
+
+            # Create a simple progress indicator
+            progress_window = tk.Toplevel(self)
+            progress_window.title("Sending Email")
+            progress_window.geometry("300x100")
+            progress_window.configure(bg='#f5f5f7')
+            progress_window.resizable(False, False)
+            progress_window.transient(self)
+            progress_window.grab_set()
+
+            tk.Label(progress_window, text="Sending test email...",
+                    font=('SF Pro Text', 12), bg='#f5f5f7',
+                    fg='#1d1d1f').pack(pady=30)
+
+            progress_window.update()
+
+            try:
+                success = self.email_sender.send_test_email()
+                progress_window.destroy()
+
+                if success:
+                    messagebox.showinfo("Success", "✓ Test email sent successfully!\n\nCheck your inbox.")
+                else:
+                    messagebox.showerror("Error", "❌ Failed to send test email.\n\nPlease check your SMTP settings and try again.")
+            except Exception as send_error:
+                progress_window.destroy()
+                messagebox.showerror("Error", f"❌ Failed to send email:\n\n{str(send_error)}")
+
         except ValueError:
-            messagebox.showerror("Error", "Please enter a valid port number")
+            messagebox.showerror("Error", "❌ Please enter a valid port number")
         except Exception as e:
-            messagebox.showerror("Error", f"Error sending test email: {str(e)}")
+            messagebox.showerror("Error", f"❌ Error: {str(e)}")
 
     def change_password(self):
         new_pwd = simpledialog.askstring("New Password", "Enter new admin password:",
@@ -1341,12 +1422,14 @@ class WorkMonitorApp:
         self.last_screenshot_time = 0
         self.last_check_time = time.time()
 
-        # Create main window
+        # Create main window with Apple-inspired design
         self.root = tk.Tk()
-        self.root.title("Work Monitor")
-        self.root.geometry("500x480")  # Taller for anti-cheat and network status
-        self.root.configure(bg='#1a1a2e')
+        self.root.title("WorkMonitor")
+        self.root.geometry("560x640")  # Larger for better spacing and all controls
+        self.root.configure(bg='#f5f5f7')  # Apple-style light gray
         self.root.protocol("WM_DELETE_WINDOW", self.minimize_to_tray)
+        self.root.resizable(True, True)  # Allow resizing for flexibility
+        self.root.minsize(560, 640)  # Minimum size to show all controls
 
         # Set window icon
         icon_path = BASE_DIR / "icon.ico"
@@ -1373,79 +1456,143 @@ class WorkMonitorApp:
             print(f"Cleaned up {removed} old screenshots")
 
     def setup_ui(self):
-        """Setup the main UI"""
-        # Title
-        title_frame = tk.Frame(self.root, bg='#1a1a2e')
-        title_frame.pack(pady=20)
+        """Setup the main UI with Apple 2026-inspired design"""
+        # Main container with padding
+        main_container = tk.Frame(self.root, bg='#f5f5f7')
+        main_container.pack(fill='both', expand=True, padx=30, pady=30)
 
-        title = tk.Label(title_frame, text="Work Monitor", font=('Segoe UI', 24, 'bold'),
-                        bg='#1a1a2e', fg='#00d2ff')
-        title.pack()
+        # Title Section - Minimalist
+        title_label = tk.Label(main_container, text="WorkMonitor",
+                              font=('SF Pro Display', 28, 'bold'),
+                              bg='#f5f5f7', fg='#1d1d1f')
+        title_label.pack(pady=(0, 8))
 
-        # Status Frame
-        self.status_frame = tk.Frame(self.root, bg='#16213e', relief='raised', bd=2)
-        self.status_frame.pack(padx=20, pady=10, fill='x')
+        subtitle_label = tk.Label(main_container, text="Activity Tracking",
+                                 font=('SF Pro Text', 13),
+                                 bg='#f5f5f7', fg='#86868b')
+        subtitle_label.pack(pady=(0, 30))
 
-        self.status_label = tk.Label(self.status_frame, text="Status: Initializing...",
-                                     font=('Segoe UI', 12), bg='#16213e', fg='white')
-        self.status_label.pack(pady=10)
+        # Status Card - Elevated surface with subtle shadow
+        status_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
+        status_card.pack(fill='x', pady=(0, 20))
 
-        # Stats Frame
-        stats_frame = tk.Frame(self.root, bg='#1a1a2e')
-        stats_frame.pack(padx=20, pady=20, fill='x')
+        status_inner = tk.Frame(status_card, bg='#ffffff')
+        status_inner.pack(padx=24, pady=20)
 
-        self.work_label = tk.Label(stats_frame, text="Work: 0h 0m", font=('Segoe UI', 14),
-                                  bg='#1a1a2e', fg='#4CAF50')
-        self.work_label.pack(anchor='w')
+        self.status_label = tk.Label(status_inner, text="Initializing...",
+                                     font=('SF Pro Text', 15),
+                                     bg='#ffffff', fg='#1d1d1f')
+        self.status_label.pack()
 
-        self.idle_label = tk.Label(stats_frame, text="Idle: 0h 0m", font=('Segoe UI', 14),
-                                  bg='#1a1a2e', fg='#ff9800')
-        self.idle_label.pack(anchor='w')
+        # Stats Card - Clean grid layout
+        stats_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
+        stats_card.pack(fill='x', pady=(0, 20))
 
-        self.screenshot_label = tk.Label(stats_frame, text="Screenshots: 0", font=('Segoe UI', 14),
-                                        bg='#1a1a2e', fg='#2196F3')
-        self.screenshot_label.pack(anchor='w')
+        stats_inner = tk.Frame(stats_card, bg='#ffffff')
+        stats_inner.pack(padx=24, pady=20, fill='x')
 
-        # Anti-cheat status
-        self.anticheat_label = tk.Label(stats_frame, text="Anti-Cheat: OK", font=('Segoe UI', 14),
-                                        bg='#1a1a2e', fg='#4CAF50')
-        self.anticheat_label.pack(anchor='w')
+        # Work Time Row
+        work_row = tk.Frame(stats_inner, bg='#ffffff')
+        work_row.pack(fill='x', pady=6)
+        tk.Label(work_row, text="Work Time", font=('SF Pro Text', 13),
+                bg='#ffffff', fg='#86868b').pack(side='left')
+        self.work_label = tk.Label(work_row, text="0h 0m", font=('SF Pro Text', 13, 'bold'),
+                                   bg='#ffffff', fg='#34c759')
+        self.work_label.pack(side='right')
 
-        # Network server status
-        self.network_label = tk.Label(stats_frame, text="Network: Disabled", font=('Segoe UI', 14),
-                                      bg='#1a1a2e', fg='#888888')
-        self.network_label.pack(anchor='w')
+        # Idle Time Row
+        idle_row = tk.Frame(stats_inner, bg='#ffffff')
+        idle_row.pack(fill='x', pady=6)
+        tk.Label(idle_row, text="Idle Time", font=('SF Pro Text', 13),
+                bg='#ffffff', fg='#86868b').pack(side='left')
+        self.idle_label = tk.Label(idle_row, text="0h 0m", font=('SF Pro Text', 13, 'bold'),
+                                  bg='#ffffff', fg='#ff9f0a')
+        self.idle_label.pack(side='right')
 
-        # Timer display
-        timer_frame = tk.Frame(self.root, bg='#16213e', relief='raised', bd=2)
-        timer_frame.pack(padx=20, pady=10, fill='x')
+        # Screenshots Row
+        screenshot_row = tk.Frame(stats_inner, bg='#ffffff')
+        screenshot_row.pack(fill='x', pady=6)
+        tk.Label(screenshot_row, text="Screenshots", font=('SF Pro Text', 13),
+                bg='#ffffff', fg='#86868b').pack(side='left')
+        self.screenshot_label = tk.Label(screenshot_row, text="0", font=('SF Pro Text', 13, 'bold'),
+                                        bg='#ffffff', fg='#007aff')
+        self.screenshot_label.pack(side='right')
 
-        self.timer_label = tk.Label(timer_frame, text="Active: 00:00:00", font=('Segoe UI', 20, 'bold'),
-                                   bg='#16213e', fg='#4CAF50')
-        self.timer_label.pack(pady=10)
+        # Anti-cheat Row
+        anticheat_row = tk.Frame(stats_inner, bg='#ffffff')
+        anticheat_row.pack(fill='x', pady=6)
+        tk.Label(anticheat_row, text="Security Status", font=('SF Pro Text', 13),
+                bg='#ffffff', fg='#86868b').pack(side='left')
+        self.anticheat_label = tk.Label(anticheat_row, text="Verified", font=('SF Pro Text', 13, 'bold'),
+                                        bg='#ffffff', fg='#34c759')
+        self.anticheat_label.pack(side='right')
 
-        self.inactive_timer_label = tk.Label(timer_frame, text="Inactive: 00:00", font=('Segoe UI', 14),
-                                            bg='#16213e', fg='#888888')
-        self.inactive_timer_label.pack(pady=5)
+        # Network Row
+        network_row = tk.Frame(stats_inner, bg='#ffffff')
+        network_row.pack(fill='x', pady=6)
+        tk.Label(network_row, text="Network Access", font=('SF Pro Text', 13),
+                bg='#ffffff', fg='#86868b').pack(side='left')
+        self.network_label = tk.Label(network_row, text="Disabled", font=('SF Pro Text', 13, 'bold'),
+                                      bg='#ffffff', fg='#8e8e93')
+        self.network_label.pack(side='right')
 
-        # Buttons Frame (simplified - no deploy)
-        btn_frame = tk.Frame(self.root, bg='#1a1a2e')
-        btn_frame.pack(pady=20)
+        # Timer Card - Prominent display
+        timer_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
+        timer_card.pack(fill='x', pady=(0, 20))
 
-        dashboard_btn = tk.Button(btn_frame, text="Open Dashboard", command=self.open_dashboard,
-                                 bg='#3498db', fg='white', font=('Segoe UI', 11, 'bold'),
-                                 padx=15, pady=8)
-        dashboard_btn.pack(side='left', padx=10)
+        timer_inner = tk.Frame(timer_card, bg='#ffffff')
+        timer_inner.pack(padx=24, pady=20)
 
-        admin_btn = tk.Button(btn_frame, text="Admin Panel", command=self.show_admin_panel,
-                             bg='#9b59b6', fg='white', font=('Segoe UI', 11, 'bold'),
-                             padx=15, pady=8)
-        admin_btn.pack(side='left', padx=10)
+        self.timer_label = tk.Label(timer_inner, text="00:00:00",
+                                    font=('SF Mono', 36, 'bold'),
+                                    bg='#ffffff', fg='#34c759')
+        self.timer_label.pack()
 
-        minimize_btn = tk.Button(btn_frame, text="Minimize to Tray", command=self.minimize_to_tray,
-                                bg='#7f8c8d', fg='white', font=('Segoe UI', 11, 'bold'),
-                                padx=15, pady=8)
-        minimize_btn.pack(side='left', padx=10)
+        timer_subtitle = tk.Label(timer_inner, text="Active Time Today",
+                                 font=('SF Pro Text', 13),
+                                 bg='#ffffff', fg='#86868b')
+        timer_subtitle.pack(pady=(4, 0))
+
+        self.inactive_timer_label = tk.Label(timer_inner, text="Inactive: 0m 0s",
+                                            font=('SF Pro Text', 12),
+                                            bg='#ffffff', fg='#8e8e93')
+        self.inactive_timer_label.pack(pady=(8, 0))
+
+        # Buttons Section - Grid layout for better visibility
+        buttons_frame = tk.Frame(main_container, bg='#f5f5f7')
+        buttons_frame.pack(fill='x', pady=(10, 0))
+
+        # Primary Actions (Row 1)
+        primary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
+        primary_row.pack(fill='x', pady=(0, 10))
+
+        dashboard_btn = tk.Button(primary_row, text="Open Dashboard", command=self.open_dashboard,
+                                 bg='#007aff', fg='white', font=('SF Pro Text', 12, 'bold'),
+                                 relief='flat', bd=0, padx=20, pady=12,
+                                 cursor='hand2', activebackground='#0051d5')
+        dashboard_btn.pack(side='left', expand=True, fill='x', padx=(0, 5))
+
+        admin_btn = tk.Button(primary_row, text="Admin Panel", command=self.show_admin_panel,
+                             bg='#5856d6', fg='white', font=('SF Pro Text', 12, 'bold'),
+                             relief='flat', bd=0, padx=20, pady=12,
+                             cursor='hand2', activebackground='#4745b8')
+        admin_btn.pack(side='left', expand=True, fill='x', padx=(5, 0))
+
+        # Secondary Actions (Row 2)
+        secondary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
+        secondary_row.pack(fill='x', pady=(0, 10))
+
+        minimize_btn = tk.Button(secondary_row, text="Minimize to Tray", command=self.minimize_to_tray,
+                                bg='#e5e5ea', fg='#1d1d1f', font=('SF Pro Text', 12),
+                                relief='flat', bd=0, padx=20, pady=12,
+                                cursor='hand2', activebackground='#d1d1d6')
+        minimize_btn.pack(side='left', expand=True, fill='x', padx=(0, 5))
+
+        shutdown_btn = tk.Button(secondary_row, text="Shutdown Program", command=self.shutdown_program,
+                                bg='#ff3b30', fg='white', font=('SF Pro Text', 12, 'bold'),
+                                relief='flat', bd=0, padx=20, pady=12,
+                                cursor='hand2', activebackground='#d62f25')
+        shutdown_btn.pack(side='left', expand=True, fill='x', padx=(5, 0))
 
         # Fullscreen warning window (hidden by default)
         self.warning_window = None
@@ -1608,7 +1755,7 @@ class WorkMonitorApp:
             time.sleep(1)
 
     def update_ui(self):
-        """Update UI with current stats"""
+        """Update UI with current stats - Apple design style"""
         if not self.running:
             return
 
@@ -1616,19 +1763,19 @@ class WorkMonitorApp:
             summary = self.logger.get_summary()
             idle_secs = int(self.mouse_tracker.get_idle_seconds())
 
-            # Update status
+            # Update status with modern messaging
             if self.is_suspicious:
-                status_text = "Status: SUSPICIOUS ACTIVITY"
-                self.status_label.configure(fg='#e91e63')
+                status_text = "⚠️ Suspicious Activity Detected"
+                self.status_label.configure(fg='#ff3b30')
             elif self.is_working:
-                status_text = "Status: WORKING"
-                self.status_label.configure(fg='#4CAF50')
+                status_text = "✓ Active"
+                self.status_label.configure(fg='#34c759')
             else:
-                status_text = f"Status: IDLE ({idle_secs}s)"
-                self.status_label.configure(fg='#ff9800')
+                status_text = f"○ Idle"
+                self.status_label.configure(fg='#ff9f0a')
 
             if not self.is_work_hours():
-                status_text += " - Outside Work Hours"
+                status_text += " • Outside Work Hours"
 
             self.status_label.configure(text=status_text)
 
@@ -1637,7 +1784,7 @@ class WorkMonitorApp:
             timer_h = total_work_secs // 3600
             timer_m = (total_work_secs % 3600) // 60
             timer_s = total_work_secs % 60
-            self.timer_label.configure(text=f"Active: {timer_h:02d}:{timer_m:02d}:{timer_s:02d}")
+            self.timer_label.configure(text=f"{timer_h:02d}:{timer_m:02d}:{timer_s:02d}")
 
             # Update inactive timer
             if idle_secs >= 60:  # Show after 1 minute
@@ -1645,39 +1792,39 @@ class WorkMonitorApp:
                 idle_s = idle_secs % 60
                 self.inactive_timer_label.configure(text=f"Inactive: {idle_mins}m {idle_s}s")
                 if idle_secs >= 300:  # 5 minutes - turn red
-                    self.inactive_timer_label.configure(fg='#e91e63')
+                    self.inactive_timer_label.configure(fg='#ff3b30')
                 else:
-                    self.inactive_timer_label.configure(fg='#ff9800')
+                    self.inactive_timer_label.configure(fg='#ff9f0a')
             else:
-                self.inactive_timer_label.configure(text="Inactive: 0m 0s", fg='#888888')
+                self.inactive_timer_label.configure(text="Inactive: 0m 0s", fg='#8e8e93')
 
-            # Update stats
+            # Update stats with clean formatting
             work_h = int(summary['work_hours'])
             work_m = int((summary['work_hours'] - work_h) * 60)
-            self.work_label.configure(text=f"Work: {work_h}h {work_m}m")
+            self.work_label.configure(text=f"{work_h}h {work_m}m")
 
             idle_h = int(summary['idle_hours'])
             idle_m = int((summary['idle_hours'] - idle_h) * 60)
-            self.idle_label.configure(text=f"Idle: {idle_h}h {idle_m}m")
+            self.idle_label.configure(text=f"{idle_h}h {idle_m}m")
 
-            self.screenshot_label.configure(text=f"Screenshots: {summary['screenshot_count']}")
+            self.screenshot_label.configure(text=f"{summary['screenshot_count']}")
 
             # Update anti-cheat status
             cheat_status = self.mouse_tracker.get_cheat_status()
             if cheat_status['is_cheating']:
                 self.anticheat_label.configure(
-                    text=f"Anti-Cheat: ALERT ({cheat_status['score']:.0f}%)",
-                    fg='#e91e63'
+                    text=f"Alert ({cheat_status['score']:.0f}%)",
+                    fg='#ff3b30'
                 )
             else:
-                self.anticheat_label.configure(text="Anti-Cheat: OK", fg='#4CAF50')
+                self.anticheat_label.configure(text="Verified", fg='#34c759')
 
             # Update network server status
             if self.dashboard_server.is_running():
                 url = self.dashboard_server.get_access_url()
-                self.network_label.configure(text=f"Network: {url}", fg='#2ecc71')
+                self.network_label.configure(text=f"Active", fg='#34c759')
             else:
-                self.network_label.configure(text="Network: Disabled", fg='#888888')
+                self.network_label.configure(text="Disabled", fg='#8e8e93')
 
         except Exception as e:
             print(f"UI update error: {e}")
@@ -1736,6 +1883,15 @@ class WorkMonitorApp:
         icon = pystray.Icon("WorkMonitor", get_icon_image(), "Work Monitor", menu)
         threading.Thread(target=icon.run, daemon=True).start()
 
+    def shutdown_program(self):
+        """Safely shutdown the program with confirmation"""
+        result = messagebox.askyesno("Shutdown WorkMonitor",
+                                     "Are you sure you want to shutdown WorkMonitor?\n\n" +
+                                     "The application will stop tracking your activity.",
+                                     icon='warning')
+        if result:
+            self.quit_app()
+
     def quit_app(self):
         """Quit the application"""
         self.running = False
@@ -1745,6 +1901,15 @@ class WorkMonitorApp:
         # Stop dashboard server
         if hasattr(self, 'dashboard_server'):
             self.dashboard_server.stop()
+
+        # Clean up lock file
+        lock_file = DATA_DIR / "app.lock"
+        if lock_file.exists():
+            try:
+                lock_file.unlink()
+            except:
+                pass
+
         self.root.quit()
         self.root.destroy()
 
@@ -1797,8 +1962,54 @@ def set_windows_appid():
         print(f"Could not set Windows AppUserModelID: {e}")
 
 
+def ensure_single_instance():
+    """Ensure only one instance of the application is running. Close any existing instances."""
+    lock_file = DATA_DIR / "app.lock"
+    current_pid = os.getpid()
+
+    # Check if lock file exists
+    if lock_file.exists():
+        try:
+            with open(lock_file, 'r') as f:
+                old_pid = int(f.read().strip())
+
+            # Check if the old process is still running
+            if psutil.pid_exists(old_pid):
+                try:
+                    # Try to get the process
+                    old_process = psutil.Process(old_pid)
+                    # Check if it's actually our app (by name)
+                    if 'python' in old_process.name().lower() or 'work_monitor' in old_process.name().lower():
+                        print(f"Found existing instance (PID: {old_pid}). Terminating...")
+                        old_process.terminate()
+                        # Wait up to 5 seconds for graceful termination
+                        old_process.wait(timeout=5)
+                        print("Previous instance terminated successfully.")
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired) as e:
+                    print(f"Could not terminate old process: {e}")
+                except Exception as e:
+                    print(f"Error handling old instance: {e}")
+
+            # Remove stale lock file
+            lock_file.unlink(missing_ok=True)
+        except Exception as e:
+            print(f"Error reading lock file: {e}")
+            lock_file.unlink(missing_ok=True)
+
+    # Create new lock file with current PID
+    try:
+        with open(lock_file, 'w') as f:
+            f.write(str(current_pid))
+        print(f"Lock file created with PID: {current_pid}")
+    except Exception as e:
+        print(f"Could not create lock file: {e}")
+
+
 def main():
     import subprocess
+
+    # Ensure only one instance is running
+    ensure_single_instance()
 
     # Set Windows app ID for proper taskbar/task manager display
     set_windows_appid()
