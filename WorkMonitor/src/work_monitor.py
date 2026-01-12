@@ -23,6 +23,7 @@ from ctypes import wintypes
 import math
 import statistics
 from collections import deque
+from email_reports import EmailReportSender
 
 # Try to import required packages
 try:
@@ -103,6 +104,15 @@ DEFAULT_CONFIG = {
     "keyboard_check_interval": 300,  # Seconds - must have keyboard activity within this window
     "require_window_changes": True,  # Require active window to change occasionally
     "window_change_interval": 600,  # Seconds - must change windows within this interval
+    # Email report settings
+    "email_enabled": False,
+    "email_to": "",
+    "email_from": "",
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "smtp_username": "",
+    "smtp_password": "",
+    "smtp_use_tls": True,
 }
 
 
@@ -1002,12 +1012,13 @@ class HTMLReportGenerator:
 class AdminPanel(tk.Toplevel):
     """Admin configuration panel"""
 
-    def __init__(self, parent, config, logger=None):
+    def __init__(self, parent, config, logger=None, email_sender=None):
         super().__init__(parent)
         self.config = config
         self.logger = logger
+        self.email_sender = email_sender
         self.title("Admin Panel - Work Monitor")
-        self.geometry("420x520")
+        self.geometry("600x750")
         self.configure(bg='#2c3e50')
         self.resizable(False, False)
 
@@ -1069,6 +1080,53 @@ class AdminPanel(tk.Toplevel):
         self.warning_screen.insert(0, str(self.config.get('warning_screen_seconds')))
         self.warning_screen.pack(fill='x')
 
+        # Email Settings Section
+        tk.Label(frame, text="━━━━━━━━━━━━━━━━━━━━━━", bg='#2c3e50', fg='#666',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(20, 5))
+        tk.Label(frame, text="📧 Weekly Email Reports", bg='#2c3e50', fg='#3498db',
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(5, 10))
+
+        # Enable Email Reports
+        self.email_enabled = tk.BooleanVar(value=self.config.get('email_enabled'))
+        tk.Checkbutton(frame, text="Enable Weekly Email Reports (Fridays 5:30 PM)",
+                      variable=self.email_enabled, bg='#2c3e50', fg='white',
+                      selectcolor='#34495e', font=('Segoe UI', 10)).pack(anchor='w', pady=5)
+
+        # Email To
+        tk.Label(frame, text="Send Report To (Email):", bg='#2c3e50', fg='white',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
+        self.email_to = tk.Entry(frame, font=('Segoe UI', 11))
+        self.email_to.insert(0, str(self.config.get('email_to')))
+        self.email_to.pack(fill='x')
+
+        # SMTP Server
+        tk.Label(frame, text="SMTP Server:", bg='#2c3e50', fg='white',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
+        self.smtp_server = tk.Entry(frame, font=('Segoe UI', 11))
+        self.smtp_server.insert(0, str(self.config.get('smtp_server')))
+        self.smtp_server.pack(fill='x')
+
+        # SMTP Port
+        tk.Label(frame, text="SMTP Port:", bg='#2c3e50', fg='white',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
+        self.smtp_port = tk.Entry(frame, font=('Segoe UI', 11))
+        self.smtp_port.insert(0, str(self.config.get('smtp_port')))
+        self.smtp_port.pack(fill='x')
+
+        # SMTP Username
+        tk.Label(frame, text="SMTP Username/Email:", bg='#2c3e50', fg='white',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
+        self.smtp_username = tk.Entry(frame, font=('Segoe UI', 11))
+        self.smtp_username.insert(0, str(self.config.get('smtp_username')))
+        self.smtp_username.pack(fill='x')
+
+        # SMTP Password
+        tk.Label(frame, text="SMTP Password:", bg='#2c3e50', fg='white',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
+        self.smtp_password = tk.Entry(frame, font=('Segoe UI', 11), show='*')
+        self.smtp_password.insert(0, str(self.config.get('smtp_password')))
+        self.smtp_password.pack(fill='x')
+
         # Buttons Row 1
         btn_frame1 = tk.Frame(self, bg='#2c3e50')
         btn_frame1.pack(pady=15)
@@ -1082,6 +1140,15 @@ class AdminPanel(tk.Toplevel):
                            bg='#3498db', fg='white', font=('Segoe UI', 10, 'bold'),
                            padx=15, pady=8)
         pwd_btn.pack(side='left', padx=5)
+
+        # Buttons Row 2 (Email Test)
+        btn_frame2 = tk.Frame(self, bg='#2c3e50')
+        btn_frame2.pack(pady=5)
+
+        test_email_btn = tk.Button(btn_frame2, text="📧 Send Test Email", command=self.send_test_email,
+                                   bg='#16a085', fg='white', font=('Segoe UI', 10, 'bold'),
+                                   padx=20, pady=8)
+        test_email_btn.pack(side='left', padx=5)
 
         # Reset Button
         reset_btn = tk.Button(self, text="Reset Everything", command=self.reset_all,
@@ -1098,10 +1165,49 @@ class AdminPanel(tk.Toplevel):
             self.config.set('screenshot_interval_minutes', int(self.screenshot_interval.get()))
             self.config.set('idle_start_seconds', int(self.idle_start.get()))
             self.config.set('warning_screen_seconds', int(self.warning_screen.get()))
-            messagebox.showinfo("Success", "Settings saved successfully!")
+
+            # Save email settings
+            self.config.set('email_enabled', self.email_enabled.get())
+            self.config.set('email_to', self.email_to.get())
+            self.config.set('email_from', self.smtp_username.get())  # Use SMTP username as from address
+            self.config.set('smtp_server', self.smtp_server.get())
+            self.config.set('smtp_port', int(self.smtp_port.get()))
+            self.config.set('smtp_username', self.smtp_username.get())
+            self.config.set('smtp_password', self.smtp_password.get())
+
+            messagebox.showinfo("Success", "Settings saved successfully! Restart the app to apply email scheduler changes.")
             self.destroy()
         except ValueError:
             messagebox.showerror("Error", "Please enter valid numbers")
+
+    def send_test_email(self):
+        """Send a test email to verify configuration"""
+        # First save the current settings temporarily
+        try:
+            self.config.set('email_enabled', self.email_enabled.get())
+            self.config.set('email_to', self.email_to.get())
+            self.config.set('email_from', self.smtp_username.get())
+            self.config.set('smtp_server', self.smtp_server.get())
+            self.config.set('smtp_port', int(self.smtp_port.get()))
+            self.config.set('smtp_username', self.smtp_username.get())
+            self.config.set('smtp_password', self.smtp_password.get())
+
+            if not self.email_sender:
+                messagebox.showerror("Error", "Email sender not initialized!")
+                return
+
+            # Try to send test email
+            messagebox.showinfo("Sending", "Sending test email... This may take a few seconds.")
+            success = self.email_sender.send_test_email()
+
+            if success:
+                messagebox.showinfo("Success", "Test email sent successfully! Check your inbox.")
+            else:
+                messagebox.showerror("Error", "Failed to send test email. Check the console for details.")
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid port number")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error sending test email: {str(e)}")
 
     def change_password(self):
         new_pwd = simpledialog.askstring("New Password", "Enter new admin password:",
@@ -1177,6 +1283,9 @@ class WorkMonitorApp:
         self.keyboard_tracker = KeyboardTracker(self.mouse_tracker.anticheat)
         self.screenshot_manager = ScreenshotManager(self.config)
 
+        # Initialize email report sender
+        self.email_sender = EmailReportSender(self.config, ActivityLogger)
+
         self.running = True
         self.is_working = False
         self.is_suspicious = False  # Anti-cheat flag
@@ -1192,6 +1301,10 @@ class WorkMonitorApp:
 
         self.setup_ui()
         self.start_monitoring()
+
+        # Start email scheduler if enabled
+        if self.config.get('email_enabled'):
+            self.email_sender.start_scheduler()
 
         # Cleanup old screenshots on start
         removed = self.screenshot_manager.cleanup_old()
@@ -1511,7 +1624,7 @@ class WorkMonitorApp:
         password = simpledialog.askstring("Admin Login", "Enter admin password:",
                                          show='*', parent=self.root)
         if password and self.config.verify_password(password):
-            AdminPanel(self.root, self.config, self.logger)
+            AdminPanel(self.root, self.config, self.logger, self.email_sender)
         elif password:
             messagebox.showerror("Error", "Invalid password!")
 
@@ -1545,6 +1658,9 @@ class WorkMonitorApp:
     def quit_app(self):
         """Quit the application"""
         self.running = False
+        # Stop email scheduler
+        if hasattr(self, 'email_sender'):
+            self.email_sender.stop_scheduler()
         self.root.quit()
         self.root.destroy()
 
