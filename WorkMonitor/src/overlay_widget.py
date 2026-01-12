@@ -130,7 +130,7 @@ class OverlayWidget:
         # Anti-cheat status (right side of top row)
         self.anticheat_label = tk.Label(
             self.top_frame,
-            text="Security: ON",
+            text="Anti-Cheat: ON",
             font=('SF Pro Text', 9),
             fg='#34c759',
             bg='#2c2c2e'
@@ -144,7 +144,7 @@ class OverlayWidget:
         # Work time display (main)
         self.time_label = tk.Label(
             self.frame,
-            text="0:00:00",
+            text="Work: 0:00:00",
             font=('SF Mono', 18, 'bold'),
             fg='#34c759',
             bg='#2c2c2e'
@@ -349,10 +349,10 @@ class OverlayWidget:
             self.apply_collapsed_state()
         else:
             # Show all elements
-            self.sep.pack(fill='x', pady=4)
+            self.sep.pack(fill='x', pady=5)
             self.time_label.pack()
-            self.stats_frame.pack(fill='x', pady=(4, 0))
-            self.screenshots_label.pack(pady=(2, 0))
+            self.stats_frame.pack(fill='x', pady=(5, 0))
+            self.screenshots_label.pack(pady=(3, 0))
             self.resize_grip.pack(side='right', anchor='se')
             self.minimize_btn.config(text=" \u25BC ")  # Down arrow
 
@@ -500,14 +500,14 @@ class OverlayWidget:
         else:
             # Update work time
             work_str = self.format_time(work_secs)
-            self.time_label.config(text=f"Work: {work_str}", bg='#1a1a2e')
+            self.time_label.config(text=f"Work: {work_str}", bg='#2c2c2e')
 
             # Reset background to normal
-            self.frame.config(bg='#1a1a2e')
+            self.frame.config(bg='#2c2c2e')
             for w in [self.top_frame, self.rec_dot, self.rec_label,
                      self.anticheat_label, self.stats_frame, self.idle_label,
                      self.clock_label, self.screenshots_label]:
-                w.config(bg='#1a1a2e')
+                w.config(bg='#2c2c2e')
 
             # Color based on hours worked
             hours = work_secs / 3600
