@@ -1461,152 +1461,150 @@ class WorkMonitorApp:
 
     def setup_ui(self):
         """Setup the main UI with Apple 2026-inspired design"""
-        # Main container with padding
+        # Main container with generous padding
         main_container = tk.Frame(self.root, bg='#f5f5f7')
-        main_container.pack(fill='both', expand=True, padx=32, pady=32)
+        main_container.pack(fill='both', expand=True, padx=40, pady=40)
 
-        # Title Section - Minimalist and modern
+        # Title Section - Bold and prominent
         title_label = tk.Label(main_container, text="WorkMonitor",
-                              font=('SF Pro Display', 32, 'bold'),
+                              font=('Segoe UI', 36, 'bold'),
                               bg='#f5f5f7', fg='#1d1d1f')
-        title_label.pack(pady=(0, 6))
+        title_label.pack(pady=(0, 8))
 
         subtitle_label = tk.Label(main_container, text="Intelligent Activity Tracking",
-                                 font=('SF Pro Text', 14),
+                                 font=('Segoe UI', 15),
                                  bg='#f5f5f7', fg='#86868b')
-        subtitle_label.pack(pady=(0, 28))
+        subtitle_label.pack(pady=(0, 32))
 
-        # Status Card - Elevated surface with subtle border
-        status_card_outer = tk.Frame(main_container, bg='#e5e5ea', relief='flat', bd=0)
-        status_card_outer.pack(fill='x', pady=(0, 16))
-
-        status_card = tk.Frame(status_card_outer, bg='#ffffff', relief='flat', bd=0)
-        status_card.pack(fill='both', expand=True, padx=1, pady=1)
+        # Status Card - Clean white card with border
+        status_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
+        status_card.pack(fill='x', pady=(0, 18))
+        status_card.configure(highlightbackground='#e5e5ea', highlightthickness=1)
 
         status_inner = tk.Frame(status_card, bg='#ffffff')
-        status_inner.pack(padx=26, pady=22)
+        status_inner.pack(padx=30, pady=24)
 
         self.status_label = tk.Label(status_inner, text="Initializing...",
-                                     font=('SF Pro Text', 16),
+                                     font=('Segoe UI', 17),
                                      bg='#ffffff', fg='#1d1d1f')
         self.status_label.pack()
 
-        # Stats Card - Clean layout with better spacing
-        stats_card_outer = tk.Frame(main_container, bg='#e5e5ea', relief='flat', bd=0)
-        stats_card_outer.pack(fill='x', pady=(0, 16))
-
-        stats_card = tk.Frame(stats_card_outer, bg='#ffffff', relief='flat', bd=0)
-        stats_card.pack(fill='both', expand=True, padx=1, pady=1)
+        # Stats Card - White card with clean layout
+        stats_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
+        stats_card.pack(fill='x', pady=(0, 18))
+        stats_card.configure(highlightbackground='#e5e5ea', highlightthickness=1)
 
         stats_inner = tk.Frame(stats_card, bg='#ffffff')
-        stats_inner.pack(padx=26, pady=22, fill='x')
+        stats_inner.pack(padx=30, pady=24, fill='x')
 
         # Work Time Row
         work_row = tk.Frame(stats_inner, bg='#ffffff')
-        work_row.pack(fill='x', pady=7)
-        tk.Label(work_row, text="Work Time", font=('SF Pro Text', 14),
+        work_row.pack(fill='x', pady=8)
+        tk.Label(work_row, text="Work Time", font=('Segoe UI', 15),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.work_label = tk.Label(work_row, text="0h 0m", font=('SF Pro Text', 14, 'bold'),
+        self.work_label = tk.Label(work_row, text="0h 0m", font=('Segoe UI', 15, 'bold'),
                                    bg='#ffffff', fg='#34c759')
         self.work_label.pack(side='right')
 
         # Idle Time Row
         idle_row = tk.Frame(stats_inner, bg='#ffffff')
-        idle_row.pack(fill='x', pady=7)
-        tk.Label(idle_row, text="Idle Time", font=('SF Pro Text', 14),
+        idle_row.pack(fill='x', pady=8)
+        tk.Label(idle_row, text="Idle Time", font=('Segoe UI', 15),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.idle_label = tk.Label(idle_row, text="0h 0m", font=('SF Pro Text', 14, 'bold'),
+        self.idle_label = tk.Label(idle_row, text="0h 0m", font=('Segoe UI', 15, 'bold'),
                                   bg='#ffffff', fg='#ff9f0a')
         self.idle_label.pack(side='right')
 
         # Screenshots Row
         screenshot_row = tk.Frame(stats_inner, bg='#ffffff')
-        screenshot_row.pack(fill='x', pady=7)
-        tk.Label(screenshot_row, text="Screenshots", font=('SF Pro Text', 14),
+        screenshot_row.pack(fill='x', pady=8)
+        tk.Label(screenshot_row, text="Screenshots", font=('Segoe UI', 15),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.screenshot_label = tk.Label(screenshot_row, text="0", font=('SF Pro Text', 14, 'bold'),
+        self.screenshot_label = tk.Label(screenshot_row, text="0", font=('Segoe UI', 15, 'bold'),
                                         bg='#ffffff', fg='#0a84ff')
         self.screenshot_label.pack(side='right')
 
         # Anti-cheat Row
         anticheat_row = tk.Frame(stats_inner, bg='#ffffff')
-        anticheat_row.pack(fill='x', pady=7)
-        tk.Label(anticheat_row, text="Security Status", font=('SF Pro Text', 14),
+        anticheat_row.pack(fill='x', pady=8)
+        tk.Label(anticheat_row, text="Security Status", font=('Segoe UI', 15),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.anticheat_label = tk.Label(anticheat_row, text="Verified", font=('SF Pro Text', 14, 'bold'),
+        self.anticheat_label = tk.Label(anticheat_row, text="Verified", font=('Segoe UI', 15, 'bold'),
                                         bg='#ffffff', fg='#34c759')
         self.anticheat_label.pack(side='right')
 
         # Network Row
         network_row = tk.Frame(stats_inner, bg='#ffffff')
-        network_row.pack(fill='x', pady=7)
-        tk.Label(network_row, text="Network Access", font=('SF Pro Text', 14),
+        network_row.pack(fill='x', pady=8)
+        tk.Label(network_row, text="Network Access", font=('Segoe UI', 15),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.network_label = tk.Label(network_row, text="Disabled", font=('SF Pro Text', 14, 'bold'),
+        self.network_label = tk.Label(network_row, text="Disabled", font=('Segoe UI', 15, 'bold'),
                                       bg='#ffffff', fg='#98989d')
         self.network_label.pack(side='right')
 
-        # Timer Card - Prominent display with better elevation
-        timer_card_outer = tk.Frame(main_container, bg='#e5e5ea', relief='flat', bd=0)
-        timer_card_outer.pack(fill='x', pady=(0, 16))
-
-        timer_card = tk.Frame(timer_card_outer, bg='#ffffff', relief='flat', bd=0)
-        timer_card.pack(fill='both', expand=True, padx=1, pady=1)
+        # Timer Card - Large prominent display
+        timer_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
+        timer_card.pack(fill='x', pady=(0, 18))
+        timer_card.configure(highlightbackground='#e5e5ea', highlightthickness=1)
 
         timer_inner = tk.Frame(timer_card, bg='#ffffff')
-        timer_inner.pack(padx=26, pady=26)
+        timer_inner.pack(padx=30, pady=28)
 
         self.timer_label = tk.Label(timer_inner, text="00:00:00",
-                                    font=('SF Mono', 42, 'bold'),
+                                    font=('Consolas', 48, 'bold'),
                                     bg='#ffffff', fg='#34c759')
         self.timer_label.pack()
 
         timer_subtitle = tk.Label(timer_inner, text="Active Time Today",
-                                 font=('SF Pro Text', 14),
+                                 font=('Segoe UI', 15),
                                  bg='#ffffff', fg='#86868b')
-        timer_subtitle.pack(pady=(6, 0))
+        timer_subtitle.pack(pady=(8, 0))
 
         self.inactive_timer_label = tk.Label(timer_inner, text="Inactive: 0m 0s",
-                                            font=('SF Pro Text', 13),
+                                            font=('Segoe UI', 14),
                                             bg='#ffffff', fg='#98989d')
-        self.inactive_timer_label.pack(pady=(10, 0))
+        self.inactive_timer_label.pack(pady=(12, 0))
 
-        # Buttons Section - Modern layout with better spacing
+        # Buttons Section - Modern button styling
         buttons_frame = tk.Frame(main_container, bg='#f5f5f7')
-        buttons_frame.pack(fill='x', pady=(12, 0))
+        buttons_frame.pack(fill='x', pady=(14, 0))
 
-        # Primary Actions (Row 1) - More prominent
+        # Primary Actions (Row 1)
         primary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
-        primary_row.pack(fill='x', pady=(0, 10))
+        primary_row.pack(fill='x', pady=(0, 12))
 
         dashboard_btn = tk.Button(primary_row, text="Open Dashboard", command=self.open_dashboard,
-                                 bg='#0a84ff', fg='white', font=('SF Pro Text', 13, 'bold'),
-                                 relief='flat', bd=0, padx=22, pady=14,
-                                 cursor='hand2', activebackground='#0066cc')
-        dashboard_btn.pack(side='left', expand=True, fill='x', padx=(0, 6))
+                                 bg='#0a84ff', fg='white', font=('Segoe UI', 14, 'bold'),
+                                 relief='flat', bd=0, padx=24, pady=16,
+                                 cursor='hand2', activebackground='#0066cc',
+                                 activeforeground='white')
+        dashboard_btn.pack(side='left', expand=True, fill='x', padx=(0, 8))
 
         admin_btn = tk.Button(primary_row, text="Admin Panel", command=self.show_admin_panel,
-                             bg='#5e5ce6', fg='white', font=('SF Pro Text', 13, 'bold'),
-                             relief='flat', bd=0, padx=22, pady=14,
-                             cursor='hand2', activebackground='#4845c7')
-        admin_btn.pack(side='left', expand=True, fill='x', padx=(6, 0))
+                             bg='#5e5ce6', fg='white', font=('Segoe UI', 14, 'bold'),
+                             relief='flat', bd=0, padx=24, pady=16,
+                             cursor='hand2', activebackground='#4845c7',
+                             activeforeground='white')
+        admin_btn.pack(side='left', expand=True, fill='x', padx=(8, 0))
 
-        # Secondary Actions (Row 2) - Subtle styling
+        # Secondary Actions (Row 2)
         secondary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
-        secondary_row.pack(fill='x', pady=(0, 0))
+        secondary_row.pack(fill='x')
 
         minimize_btn = tk.Button(secondary_row, text="Minimize to Tray", command=self.minimize_to_tray,
-                                bg='#ffffff', fg='#1d1d1f', font=('SF Pro Text', 13),
-                                relief='flat', bd=1, padx=22, pady=14,
-                                cursor='hand2', activebackground='#f5f5f7',
-                                highlightthickness=1, highlightbackground='#d1d1d6')
-        minimize_btn.pack(side='left', expand=True, fill='x', padx=(0, 6))
+                                bg='#ffffff', fg='#1d1d1f', font=('Segoe UI', 14),
+                                relief='flat', bd=0, padx=24, pady=16,
+                                cursor='hand2', activebackground='#f0f0f5',
+                                highlightthickness=1, highlightbackground='#d1d1d6',
+                                activeforeground='#1d1d1f')
+        minimize_btn.pack(side='left', expand=True, fill='x', padx=(0, 8))
 
         shutdown_btn = tk.Button(secondary_row, text="Shutdown Program", command=self.shutdown_program,
-                                bg='#ff3b30', fg='white', font=('SF Pro Text', 13, 'bold'),
-                                relief='flat', bd=0, padx=22, pady=14,
-                                cursor='hand2', activebackground='#e0321f')
-        shutdown_btn.pack(side='left', expand=True, fill='x', padx=(6, 0))
+                                bg='#ff3b30', fg='white', font=('Segoe UI', 14, 'bold'),
+                                relief='flat', bd=0, padx=24, pady=16,
+                                cursor='hand2', activebackground='#e0321f',
+                                activeforeground='white')
+        shutdown_btn.pack(side='left', expand=True, fill='x', padx=(8, 0))
 
         # Fullscreen warning window (hidden by default)
         self.warning_window = None

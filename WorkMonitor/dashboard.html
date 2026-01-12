@@ -4,63 +4,373 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="30">
-    <title>Work Monitor Dashboard</title>
+    <title>WorkMonitor Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(135deg, #1a1a2e, #16213e); min-height: 100vh; color: #fff; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header { text-align: center; margin-bottom: 30px; padding: 25px; background: rgba(255,255,255,0.1); border-radius: 20px; }
-        .header h1 { font-size: 2.2em; margin-bottom: 8px; background: linear-gradient(90deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .header-btn { display: inline-block; padding: 10px 20px; color: #fff; text-decoration: none; border-radius: 20px; font-size: 0.9em; margin: 5px; transition: opacity 0.2s; }
-        .header-btn:hover { opacity: 0.8; }
-        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
-        .tab { padding: 12px 30px; background: rgba(255,255,255,0.1); border: none; color: #fff; border-radius: 25px; cursor: pointer; font-size: 1em; transition: all 0.3s; }
-        .tab:hover, .tab.active { background: linear-gradient(90deg, #00d2ff, #3a7bd5); }
-        .tab-content { display: none; } .tab-content.active { display: block; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; text-align: center; transition: transform 0.3s; }
-        .stat-card:hover { transform: translateY(-3px); }
-        .stat-value { font-size: 2.2em; font-weight: bold; margin: 8px 0; }
-        .stat-label { font-size: 0.95em; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-sublabel { font-size: 0.8em; opacity: 0.6; margin-top: 5px; }
-        .work { border-left: 4px solid #4CAF50; } .work .stat-value { color: #4CAF50; }
-        .idle { border-left: 4px solid #ff9800; } .idle .stat-value { color: #ff9800; }
-        .after-hours { border-left: 4px solid #e91e63; } .after-hours .stat-value { color: #e91e63; }
-        .suspicious { border-left: 4px solid #9c27b0; } .suspicious .stat-value { color: #9c27b0; }
-        .section { background: rgba(255,255,255,0.1); border-radius: 15px; padding: 25px; margin-bottom: 20px; }
-        .section h2 { margin-bottom: 15px; color: #3a7bd5; font-size: 1.3em; }
-        .collapsible { cursor: pointer; padding: 15px 20px; background: rgba(255,255,255,0.05); border: none; color: #fff; width: 100%; text-align: left; font-size: 1.1em; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .collapsible:hover { background: rgba(255,255,255,0.1); }
-        .collapsible-content { display: none; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; margin-bottom: 15px; }
-        .collapsible-content.show { display: block; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        th { color: #3a7bd5; font-weight: 600; }
-        .screenshot-item { background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: inline-block; margin-right: 10px; }
-        .screenshot-thumb { display: inline-block; margin: 5px; text-decoration: none; border-radius: 8px; overflow: hidden; transition: transform 0.2s; }
-        .screenshot-thumb:hover { transform: scale(1.05); }
-        .screenshot-thumb img { width: 120px; height: 70px; object-fit: cover; display: block; }
-        .screenshot-thumb span { display: block; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; padding: 4px; text-align: center; }
-        .day-section { background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
-        .day-header-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.03); border: none; color: #fff; cursor: pointer; transition: background 0.2s; }
-        .day-header-btn:hover { background: rgba(255,255,255,0.08); }
-        .day-name { font-size: 1em; font-weight: bold; color: #00d2ff; }
-        .day-stats { font-size: 0.85em; color: #888; }
-        .day-screenshots-collapsible { display: none; padding: 10px 15px; flex-wrap: wrap; gap: 5px; }
-        .day-screenshots-collapsible.show { display: flex; }
-        .footer { text-align: center; margin-top: 30px; opacity: 0.6; font-size: 0.85em; }
-        .status-indicator { display: inline-block; width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .day-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 8px; }
-        .day-row:hover { background: rgba(255,255,255,0.08); }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            padding: 40px 20px;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-subtitle {
+            font-size: 17px;
+            color: #86868b;
+            margin-bottom: 16px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 16px;
+            background: #f0f0f5;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #1d1d1f;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #34c759;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.95); }
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 24px;
+            background: #ffffff;
+            border: 1px solid #d1d1d6;
+            color: #1d1d1f;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .tab:hover {
+            background: #f5f5f7;
+            border-color: #86868b;
+        }
+
+        .tab.active {
+            background: #0a84ff;
+            color: #ffffff;
+            border-color: #0a84ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Date Header */
+        .date-header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 32px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid #e5e5ea;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #86868b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .stat-sublabel {
+            font-size: 14px;
+            color: #86868b;
+        }
+
+        /* Color variations */
+        .stat-work .stat-value { color: #34c759; }
+        .stat-idle .stat-value { color: #ff9f0a; }
+        .stat-suspicious .stat-value { color: #ff3b30; }
+        .stat-real-work .stat-value { color: #0a84ff; }
+        .stat-keystrokes .stat-value { color: #5e5ce6; }
+        .stat-windows .stat-value { color: #32d74b; }
+        .stat-screenshots .stat-value { color: #ff375f; }
+
+        /* Section */
+        .section {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 20px;
+            border: 1px solid #e5e5ea;
+        }
+
+        .section h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 20px;
+        }
+
+        /* Collapsible */
+        .collapsible {
+            cursor: pointer;
+            padding: 16px 20px;
+            background: #f5f5f7;
+            border: none;
+            color: #1d1d1f;
+            width: 100%;
+            text-align: left;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .collapsible:hover {
+            background: #e5e5ea;
+        }
+
+        .collapsible-content {
+            display: none;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .collapsible-content.show {
+            display: block;
+        }
+
+        /* Day Section */
+        .day-section {
+            background: #f5f5f7;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            border: 1px solid #e5e5ea;
+        }
+
+        .day-header-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 16px 20px;
+            background: transparent;
+            border: none;
+            color: #1d1d1f;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .day-header-btn:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        .day-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .day-stats {
+            font-size: 14px;
+            color: #86868b;
+        }
+
+        .day-screenshots-collapsible {
+            display: none;
+            padding: 16px 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #ffffff;
+        }
+
+        .day-screenshots-collapsible.show {
+            display: flex;
+        }
+
+        /* Screenshot Thumb */
+        .screenshot-thumb {
+            display: inline-block;
+            text-decoration: none;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .screenshot-thumb:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .screenshot-thumb img {
+            width: 160px;
+            height: 90px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .screenshot-thumb span {
+            display: block;
+            background: rgba(29,29,31,0.9);
+            color: #fff;
+            font-size: 11px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        /* Summary Row */
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #e5e5ea;
+            font-size: 15px;
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-row span:first-child {
+            color: #86868b;
+        }
+
+        .summary-row span:last-child {
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid #d1d1d6;
+            font-size: 13px;
+            color: #86868b;
+        }
+
+        .footer a {
+            color: #0a84ff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #86868b;
+            font-size: 15px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 20px 16px; }
+            .header h1 { font-size: 36px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .stat-value { font-size: 36px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><span class="status-indicator"></span>Work Monitor Dashboard</h1>
-            <div style="opacity: 0.8;">Office Hours: 09:00 - 17:00</div>
+            <h1>WorkMonitor</h1>
+            <div class="header-subtitle">Activity Tracking Dashboard</div>
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                Office Hours: 09:00 - 17:00
+            </div>
         </div>
 
         <div class="tabs">
@@ -72,55 +382,93 @@
 
         <!-- DAILY TAB -->
         <div id="daily" class="tab-content active">
-            <h2 style="text-align:center; margin-bottom:20px; color:#00d2ff;">2025-12-22</h2>
+            <div class="date-header">2025-12-22</div>
             <div class="stats-grid">
-                <div class="stat-card work"><div class="stat-label">Work Time</div><div class="stat-value">0.00h</div><div class="stat-sublabel">0 min</div></div>
-                <div class="stat-card idle"><div class="stat-label">Idle Time</div><div class="stat-value">0.00h</div><div class="stat-sublabel">0 min</div></div>
-                <div class="stat-card suspicious"><div class="stat-label">Suspicious</div><div class="stat-value">0.00h</div><div class="stat-sublabel">0 alerts</div></div>
-                <div class="stat-card" style="border-left: 4px solid #2196F3;"><div class="stat-label">Real Work</div><div class="stat-value" style="color:#2196F3;">0.00h</div></div>
+                <div class="stat-card stat-work">
+                    <div class="stat-label">Work Time</div>
+                    <div class="stat-value">0.00h</div>
+                    <div class="stat-sublabel">0 minutes</div>
+                </div>
+                <div class="stat-card stat-idle">
+                    <div class="stat-label">Idle Time</div>
+                    <div class="stat-value">0.00h</div>
+                    <div class="stat-sublabel">0 minutes</div>
+                </div>
+                <div class="stat-card stat-suspicious">
+                    <div class="stat-label">Suspicious</div>
+                    <div class="stat-value">0.00h</div>
+                    <div class="stat-sublabel">0 alerts</div>
+                </div>
+                <div class="stat-card stat-real-work">
+                    <div class="stat-label">Real Work</div>
+                    <div class="stat-value">0.00h</div>
+                    <div class="stat-sublabel">Verified time</div>
+                </div>
             </div>
             <div class="stats-grid">
-                <div class="stat-card" style="border-left: 4px solid #00bcd4;"><div class="stat-label">Keystrokes</div><div class="stat-value" style="color:#00bcd4;">0</div></div>
-                <div class="stat-card" style="border-left: 4px solid #8bc34a;"><div class="stat-label">Window Switches</div><div class="stat-value" style="color:#8bc34a;">0</div></div>
-                <div class="stat-card" style="border-left: 4px solid #ff5722;"><div class="stat-label">Screenshots</div><div class="stat-value" style="color:#ff5722;">0</div></div>
+                <div class="stat-card stat-keystrokes">
+                    <div class="stat-label">Keystrokes</div>
+                    <div class="stat-value">0</div>
+                </div>
+                <div class="stat-card stat-windows">
+                    <div class="stat-label">Window Switches</div>
+                    <div class="stat-value">0</div>
+                </div>
+                <div class="stat-card stat-screenshots">
+                    <div class="stat-label">Screenshots</div>
+                    <div class="stat-value">0</div>
+                </div>
             </div>
 
             <button class="collapsible" onclick="toggleDetails('idle-details')">
-                <span>Idle Periods (Left / Returned)</span>
-                <span>No idle periods</span>
+                <span>Idle Periods</span>
+                <span style="color: #86868b;">No idle periods</span>
             </button>
             <div id="idle-details" class="collapsible-content">
-                <p style="opacity:0.6;">No idle periods recorded today</p>
+                <div class="empty-state">No idle periods recorded today</div>
             </div>
 
             <button class="collapsible" onclick="toggleDetails('screenshots-details')">
                 <span>Recent Screenshots</span>
-                <span>0 total</span>
+                <span style="color: #86868b;">0 total</span>
             </button>
             <div id="screenshots-details" class="collapsible-content">
-                <p style="opacity:0.6;">No screenshots yet today</p>
+                <div class="empty-state">No screenshots yet today</div>
             </div>
         </div>
 
         <!-- WEEKLY TAB -->
         <div id="weekly" class="tab-content">
-            <h2 style="text-align:center; margin-bottom:20px; color:#00d2ff;">This Week</h2>
+            <div class="date-header">This Week</div>
             <div class="stats-grid">
-                <div class="stat-card work"><div class="stat-label">Total Work</div><div class="stat-value">0.0h</div><div class="stat-sublabel">0 days worked</div></div>
-                <div class="stat-card idle"><div class="stat-label">Total Idle</div><div class="stat-value">0.0h</div></div>
-                <div class="stat-card suspicious"><div class="stat-label">Suspicious</div><div class="stat-value">0.0h</div></div>
-                <div class="stat-card" style="border-left: 4px solid #2196F3;"><div class="stat-label">Avg/Day</div><div class="stat-value" style="color:#2196F3;">0.0h</div></div>
+                <div class="stat-card stat-work">
+                    <div class="stat-label">Total Work</div>
+                    <div class="stat-value">0.0h</div>
+                    <div class="stat-sublabel">0 days worked</div>
+                </div>
+                <div class="stat-card stat-idle">
+                    <div class="stat-label">Total Idle</div>
+                    <div class="stat-value">0.0h</div>
+                </div>
+                <div class="stat-card stat-suspicious">
+                    <div class="stat-label">Suspicious</div>
+                    <div class="stat-value">0.0h</div>
+                </div>
+                <div class="stat-card stat-real-work">
+                    <div class="stat-label">Avg per Day</div>
+                    <div class="stat-value">0.0h</div>
+                </div>
             </div>
             <div class="section">
                 <h2>Daily Breakdown</h2>
-                
+
                 <div class="day-section">
                     <button class="day-header-btn" onclick="toggleDetails('day-20251222')">
                         <span class="day-name">Monday - 2025-12-22</span>
-                        <span class="day-stats">Work: 0.0h | Idle: 0.0h | Screenshots: 0 ▼</span>
+                        <span class="day-stats">Work: 0.0h | Idle: 0.0h | Screenshots: 0</span>
                     </button>
                     <div id="day-20251222" class="day-screenshots-collapsible">
-                        <span style="opacity:0.5;">No screenshots</span>
+                        <span style="color: #86868b;">No screenshots</span>
                     </div>
                 </div>
             </div>
@@ -128,23 +476,36 @@
 
         <!-- MONTHLY TAB -->
         <div id="monthly" class="tab-content">
-            <h2 style="text-align:center; margin-bottom:20px; color:#00d2ff;">This Month</h2>
+            <div class="date-header">This Month</div>
             <div class="stats-grid">
-                <div class="stat-card work"><div class="stat-label">Total Work</div><div class="stat-value">0.0h</div><div class="stat-sublabel">0 days worked</div></div>
-                <div class="stat-card idle"><div class="stat-label">Total Idle</div><div class="stat-value">0.0h</div></div>
-                <div class="stat-card suspicious"><div class="stat-label">Suspicious</div><div class="stat-value">0.0h</div></div>
-                <div class="stat-card" style="border-left: 4px solid #2196F3;"><div class="stat-label">Real Work</div><div class="stat-value" style="color:#2196F3;">0.0h</div></div>
+                <div class="stat-card stat-work">
+                    <div class="stat-label">Total Work</div>
+                    <div class="stat-value">0.0h</div>
+                    <div class="stat-sublabel">0 days worked</div>
+                </div>
+                <div class="stat-card stat-idle">
+                    <div class="stat-label">Total Idle</div>
+                    <div class="stat-value">0.0h</div>
+                </div>
+                <div class="stat-card stat-suspicious">
+                    <div class="stat-label">Suspicious</div>
+                    <div class="stat-value">0.0h</div>
+                </div>
+                <div class="stat-card stat-real-work">
+                    <div class="stat-label">Real Work</div>
+                    <div class="stat-value">0.0h</div>
+                </div>
             </div>
             <div class="section">
                 <h2>Daily Breakdown</h2>
-                
+
                 <div class="day-section">
-                    <button class="day-header-btn" onclick="toggleDetails('day-20251222')">
+                    <button class="day-header-btn" onclick="toggleDetails('day-m-20251222')">
                         <span class="day-name">Monday - 2025-12-22</span>
-                        <span class="day-stats">Work: 0.0h | Idle: 0.0h | Screenshots: 0 ▼</span>
+                        <span class="day-stats">Work: 0.0h | Idle: 0.0h | Screenshots: 0</span>
                     </button>
-                    <div id="day-20251222" class="day-screenshots-collapsible">
-                        <span style="opacity:0.5;">No screenshots</span>
+                    <div id="day-m-20251222" class="day-screenshots-collapsible">
+                        <span style="color: #86868b;">No screenshots</span>
                     </div>
                 </div>
             </div>
@@ -152,23 +513,37 @@
 
         <!-- YEARLY TAB -->
         <div id="yearly" class="tab-content">
-            <h2 style="text-align:center; margin-bottom:20px; color:#00d2ff;">This Year (2025)</h2>
+            <div class="date-header">This Year (2025)</div>
             <div class="stats-grid">
-                <div class="stat-card work"><div class="stat-label">Total Work</div><div class="stat-value">0h</div><div class="stat-sublabel">0 days worked</div></div>
-                <div class="stat-card idle"><div class="stat-label">Total Idle</div><div class="stat-value">0h</div></div>
-                <div class="stat-card suspicious"><div class="stat-label">Suspicious</div><div class="stat-value">0h</div></div>
-                <div class="stat-card" style="border-left: 4px solid #2196F3;"><div class="stat-label">Real Work</div><div class="stat-value" style="color:#2196F3;">0h</div></div>
+                <div class="stat-card stat-work">
+                    <div class="stat-label">Total Work</div>
+                    <div class="stat-value">0h</div>
+                    <div class="stat-sublabel">0 days worked</div>
+                </div>
+                <div class="stat-card stat-idle">
+                    <div class="stat-label">Total Idle</div>
+                    <div class="stat-value">0h</div>
+                </div>
+                <div class="stat-card stat-suspicious">
+                    <div class="stat-label">Suspicious</div>
+                    <div class="stat-value">0h</div>
+                </div>
+                <div class="stat-card stat-real-work">
+                    <div class="stat-label">Real Work</div>
+                    <div class="stat-value">0h</div>
+                </div>
             </div>
             <div class="section">
-                <div class="summary-row"><span>Real Work Hours:</span><span style="color:#4CAF50;">0h</span></div>
-                <div class="summary-row"><span>Average per Day:</span><span>0.0h</span></div>
-                <div class="summary-row"><span>Total Screenshots:</span><span>0</span></div>
+                <h2>Summary</h2>
+                <div class="summary-row"><span>Real Work Hours</span><span style="color:#34c759;">0h</span></div>
+                <div class="summary-row"><span>Average per Day</span><span>0.0h</span></div>
+                <div class="summary-row"><span>Total Screenshots</span><span>0</span></div>
             </div>
         </div>
 
         <div class="footer">
-            <p>Work Monitor v1.0 | Auto-refreshes every 30 seconds</p>
-            <p style="margin-top:5px;">&copy; 2025 Enkhtamir Enkhdavaa | <a href="https://enkhtamir.com" style="color:#3a7bd5;">enkhtamir.com</a></p>
+            <p>WorkMonitor Dashboard • Auto-refreshes every 30 seconds</p>
+            <p style="margin-top:8px;">&copy; 2025 Enkhtamir Enkhdavaa • <a href="https://enkhtamir.com">enkhtamir.com</a></p>
         </div>
     </div>
 
