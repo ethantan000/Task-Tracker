@@ -89,16 +89,25 @@ class OverlayWidget:
         # Position: bottom-right corner (above taskbar) or saved position
         self.position_widget()
 
-        # Apple-inspired frosted glass effect frame
-        self.frame = tk.Frame(self.root, bg='#2c2c2e', padx=12, pady=8)
+        # Apple-inspired design with subtle border and shadow effect
+        # Outer container for subtle border effect
+        outer_frame = tk.Frame(self.root, bg='#1c1c1e', padx=1, pady=1)
+        outer_frame.pack(fill='both', expand=True)
+
+        # Main frame with Apple-inspired dark theme
+        self.frame = tk.Frame(outer_frame, bg='#2c2c2e', padx=14, pady=10)
         self.frame.pack(fill='both', expand=True)
 
-        # Top row: Recording indicator
+        # Top row: Recording indicator and controls
         self.top_frame = tk.Frame(self.frame, bg='#2c2c2e')
         self.top_frame.pack(fill='x', pady=(0, 6))
 
+        # Left side: Recording indicator
+        left_controls = tk.Frame(self.top_frame, bg='#2c2c2e')
+        left_controls.pack(side='left')
+
         self.rec_dot = tk.Label(
-            self.top_frame,
+            left_controls,
             text="\u25CF",  # Solid circle
             font=('SF Pro Text', 10),
             fg='#ff3b30',
@@ -107,7 +116,7 @@ class OverlayWidget:
         self.rec_dot.pack(side='left')
 
         self.rec_label = tk.Label(
-            self.top_frame,
+            left_controls,
             text=" REC",
             font=('SF Pro Text', 9, 'bold'),
             fg='#ff3b30',
@@ -115,50 +124,68 @@ class OverlayWidget:
         )
         self.rec_label.pack(side='left')
 
-        # Minimize button (middle)
+        # Minimize button
         self.minimize_btn = tk.Label(
-            self.top_frame,
+            left_controls,
             text=" \u25BC ",  # Down arrow
             font=('SF Pro Text', 9),
             fg='#8e8e93',
             bg='#2c2c2e',
             cursor='hand2'
         )
-        self.minimize_btn.pack(side='left', padx=6)
+        self.minimize_btn.pack(side='left', padx=(6, 0))
         self.minimize_btn.bind('<Button-1>', lambda e: self.toggle_collapse())
 
-        # Anti-cheat status (right side of top row)
+        # Right side: Anti-cheat status and close button
+        right_controls = tk.Frame(self.top_frame, bg='#2c2c2e')
+        right_controls.pack(side='right')
+
         self.anticheat_label = tk.Label(
-            self.top_frame,
+            right_controls,
             text="Anti-Cheat: ON",
             font=('SF Pro Text', 9),
             fg='#34c759',
             bg='#2c2c2e'
         )
-        self.anticheat_label.pack(side='right')
+        self.anticheat_label.pack(side='left', padx=(0, 8))
 
-        # Separator line
-        self.sep = tk.Frame(self.frame, bg='#48484a', height=1)
-        self.sep.pack(fill='x', pady=5)
+        # Close button (X)
+        self.close_btn = tk.Label(
+            right_controls,
+            text="\u2715",  # X symbol
+            font=('SF Pro Text', 11, 'bold'),
+            fg='#8e8e93',
+            bg='#2c2c2e',
+            cursor='hand2',
+            padx=4
+        )
+        self.close_btn.pack(side='left')
+        self.close_btn.bind('<Button-1>', lambda e: self.close_widget())
+        self.close_btn.bind('<Enter>', lambda e: self.close_btn.config(fg='#ff3b30'))
+        self.close_btn.bind('<Leave>', lambda e: self.close_btn.config(fg='#8e8e93'))
 
-        # Work time display (main)
+        # Separator line (subtle, modern)
+        self.sep = tk.Frame(self.frame, bg='#3a3a3c', height=1)
+        self.sep.pack(fill='x', pady=(4, 8))
+
+        # Work time display (main) - larger, more prominent
         self.time_label = tk.Label(
             self.frame,
             text="Work: 0:00:00",
-            font=('SF Mono', 18, 'bold'),
+            font=('SF Mono', 20, 'bold'),
             fg='#34c759',
             bg='#2c2c2e'
         )
-        self.time_label.pack()
+        self.time_label.pack(pady=(2, 6))
 
-        # Stats row
+        # Stats row with improved spacing
         self.stats_frame = tk.Frame(self.frame, bg='#2c2c2e')
-        self.stats_frame.pack(fill='x', pady=(5, 0))
+        self.stats_frame.pack(fill='x', pady=(0, 4))
 
         self.idle_label = tk.Label(
             self.stats_frame,
             text="Idle: 0m",
-            font=('SF Pro Text', 10),
+            font=('SF Pro Text', 11),
             fg='#ff9f0a',
             bg='#2c2c2e'
         )
@@ -167,40 +194,43 @@ class OverlayWidget:
         self.clock_label = tk.Label(
             self.stats_frame,
             text="00:00",
-            font=('SF Pro Text', 10),
-            fg='#8e8e93',
+            font=('SF Pro Text', 11),
+            fg='#98989d',
             bg='#2c2c2e'
         )
         self.clock_label.pack(side='right')
 
-        # Screenshots count
+        # Screenshots count with better styling
         self.screenshots_label = tk.Label(
             self.frame,
             text="Screenshots: 0",
             font=('SF Pro Text', 10),
-            fg='#007aff',
+            fg='#0a84ff',
             bg='#2c2c2e'
         )
-        self.screenshots_label.pack(pady=(3, 0))
+        self.screenshots_label.pack(pady=(2, 4))
 
-        # Resize grip (bottom-right corner)
+        # Resize grip (bottom-right corner) - subtle, modern
         self.resize_grip = tk.Label(
             self.frame,
             text="\u25E2",  # Lower-right corner symbol
-            font=('SF Pro Text', 11),
-            fg='#636366',
+            font=('SF Pro Text', 12),
+            fg='#48484a',
             bg='#2c2c2e',
             cursor='size_nw_se'
         )
-        self.resize_grip.pack(side='right', anchor='se')
+        self.resize_grip.pack(side='right', anchor='se', padx=(0, 2), pady=(0, 2))
         self.resize_grip.bind('<Button-1>', self.start_resize)
         self.resize_grip.bind('<B1-Motion>', self.do_resize)
+        self.resize_grip.bind('<Enter>', lambda e: self.resize_grip.config(fg='#8e8e93'))
+        self.resize_grip.bind('<Leave>', lambda e: self.resize_grip.config(fg='#48484a'))
 
-        # Bind drag to all elements (except resize grip)
+        # Bind drag to all elements (except resize grip and close button)
         self.drag_widgets = [self.frame, self.top_frame, self.time_label,
                              self.stats_frame, self.idle_label, self.clock_label,
                              self.rec_dot, self.rec_label, self.anticheat_label,
-                             self.screenshots_label, self.minimize_btn]
+                             self.screenshots_label, self.minimize_btn,
+                             left_controls, right_controls]
         for widget in self.drag_widgets:
             widget.bind('<Button-1>', self.start_drag)
             widget.bind('<B1-Motion>', self.do_drag)
@@ -368,17 +398,21 @@ class OverlayWidget:
         self.minimize_btn.config(text=" \u25B2 ")  # Up arrow
 
     def show_settings_menu(self, event):
-        """Show right-click settings menu"""
-        menu = Menu(self.root, tearoff=0, bg='#2a2a3e', fg='#ffffff',
-                    activebackground='#4a4a5e', activeforeground='#ffffff')
+        """Show right-click settings menu with modern Apple styling"""
+        menu = Menu(self.root, tearoff=0,
+                    bg='#2c2c2e', fg='#ffffff',
+                    activebackground='#3a3a3c', activeforeground='#ffffff',
+                    relief='flat', borderwidth=1)
 
         # Opacity submenu
-        opacity_menu = Menu(menu, tearoff=0, bg='#2a2a3e', fg='#ffffff',
-                           activebackground='#4a4a5e', activeforeground='#ffffff')
+        opacity_menu = Menu(menu, tearoff=0,
+                           bg='#2c2c2e', fg='#ffffff',
+                           activebackground='#3a3a3c', activeforeground='#ffffff',
+                           relief='flat', borderwidth=1)
         for opacity_val in [0.3, 0.5, 0.7, 0.85, 1.0]:
             label = f"{int(opacity_val * 100)}%"
             if abs(self.opacity - opacity_val) < 0.05:
-                label = f"• {label}"
+                label = f"✓ {label}"
             opacity_menu.add_command(
                 label=label,
                 command=lambda v=opacity_val: self.set_opacity(v)
@@ -493,8 +527,12 @@ class OverlayWidget:
                 self.frame.config(bg='#4a1a1a')
                 for w in [self.top_frame, self.rec_dot, self.rec_label,
                          self.anticheat_label, self.stats_frame, self.idle_label,
-                         self.clock_label, self.screenshots_label]:
+                         self.clock_label, self.screenshots_label, self.close_btn]:
                     w.config(bg='#4a1a1a')
+                # Update control frames background
+                for child in self.top_frame.winfo_children():
+                    if isinstance(child, tk.Frame):
+                        child.config(bg='#4a1a1a')
             except:
                 self.time_label.config(text="IDLE", fg='#e74c3c', bg='#4a1a1a')
         else:
@@ -506,8 +544,12 @@ class OverlayWidget:
             self.frame.config(bg='#2c2c2e')
             for w in [self.top_frame, self.rec_dot, self.rec_label,
                      self.anticheat_label, self.stats_frame, self.idle_label,
-                     self.clock_label, self.screenshots_label]:
+                     self.clock_label, self.screenshots_label, self.close_btn]:
                 w.config(bg='#2c2c2e')
+            # Update control frames background
+            for child in self.top_frame.winfo_children():
+                if isinstance(child, tk.Frame):
+                    child.config(bg='#2c2c2e')
 
             # Color based on hours worked
             hours = work_secs / 3600
@@ -551,6 +593,11 @@ class OverlayWidget:
 
         # Update every second
         self.root.after(1000, self.update_display)
+
+    def close_widget(self):
+        """Close/hide the widget without terminating main app"""
+        self.save_preferences()
+        self.root.destroy()
 
     def on_close(self):
         """Handle window close event"""

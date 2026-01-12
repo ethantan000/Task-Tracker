@@ -1422,6 +1422,10 @@ class WorkMonitorApp:
         self.last_screenshot_time = 0
         self.last_check_time = time.time()
 
+        # Overlay widget process
+        self.overlay_process = None
+        self.overlay_script = BASE_DIR / "src" / "overlay_widget.py"
+
         # Create main window with Apple-inspired design
         self.root = tk.Tk()
         self.root.title("WorkMonitor")
@@ -1459,140 +1463,150 @@ class WorkMonitorApp:
         """Setup the main UI with Apple 2026-inspired design"""
         # Main container with padding
         main_container = tk.Frame(self.root, bg='#f5f5f7')
-        main_container.pack(fill='both', expand=True, padx=30, pady=30)
+        main_container.pack(fill='both', expand=True, padx=32, pady=32)
 
-        # Title Section - Minimalist
+        # Title Section - Minimalist and modern
         title_label = tk.Label(main_container, text="WorkMonitor",
-                              font=('SF Pro Display', 28, 'bold'),
+                              font=('SF Pro Display', 32, 'bold'),
                               bg='#f5f5f7', fg='#1d1d1f')
-        title_label.pack(pady=(0, 8))
+        title_label.pack(pady=(0, 6))
 
-        subtitle_label = tk.Label(main_container, text="Activity Tracking",
-                                 font=('SF Pro Text', 13),
+        subtitle_label = tk.Label(main_container, text="Intelligent Activity Tracking",
+                                 font=('SF Pro Text', 14),
                                  bg='#f5f5f7', fg='#86868b')
-        subtitle_label.pack(pady=(0, 30))
+        subtitle_label.pack(pady=(0, 28))
 
-        # Status Card - Elevated surface with subtle shadow
-        status_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
-        status_card.pack(fill='x', pady=(0, 20))
+        # Status Card - Elevated surface with subtle border
+        status_card_outer = tk.Frame(main_container, bg='#e5e5ea', relief='flat', bd=0)
+        status_card_outer.pack(fill='x', pady=(0, 16))
+
+        status_card = tk.Frame(status_card_outer, bg='#ffffff', relief='flat', bd=0)
+        status_card.pack(fill='both', expand=True, padx=1, pady=1)
 
         status_inner = tk.Frame(status_card, bg='#ffffff')
-        status_inner.pack(padx=24, pady=20)
+        status_inner.pack(padx=26, pady=22)
 
         self.status_label = tk.Label(status_inner, text="Initializing...",
-                                     font=('SF Pro Text', 15),
+                                     font=('SF Pro Text', 16),
                                      bg='#ffffff', fg='#1d1d1f')
         self.status_label.pack()
 
-        # Stats Card - Clean grid layout
-        stats_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
-        stats_card.pack(fill='x', pady=(0, 20))
+        # Stats Card - Clean layout with better spacing
+        stats_card_outer = tk.Frame(main_container, bg='#e5e5ea', relief='flat', bd=0)
+        stats_card_outer.pack(fill='x', pady=(0, 16))
+
+        stats_card = tk.Frame(stats_card_outer, bg='#ffffff', relief='flat', bd=0)
+        stats_card.pack(fill='both', expand=True, padx=1, pady=1)
 
         stats_inner = tk.Frame(stats_card, bg='#ffffff')
-        stats_inner.pack(padx=24, pady=20, fill='x')
+        stats_inner.pack(padx=26, pady=22, fill='x')
 
         # Work Time Row
         work_row = tk.Frame(stats_inner, bg='#ffffff')
-        work_row.pack(fill='x', pady=6)
-        tk.Label(work_row, text="Work Time", font=('SF Pro Text', 13),
+        work_row.pack(fill='x', pady=7)
+        tk.Label(work_row, text="Work Time", font=('SF Pro Text', 14),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.work_label = tk.Label(work_row, text="0h 0m", font=('SF Pro Text', 13, 'bold'),
+        self.work_label = tk.Label(work_row, text="0h 0m", font=('SF Pro Text', 14, 'bold'),
                                    bg='#ffffff', fg='#34c759')
         self.work_label.pack(side='right')
 
         # Idle Time Row
         idle_row = tk.Frame(stats_inner, bg='#ffffff')
-        idle_row.pack(fill='x', pady=6)
-        tk.Label(idle_row, text="Idle Time", font=('SF Pro Text', 13),
+        idle_row.pack(fill='x', pady=7)
+        tk.Label(idle_row, text="Idle Time", font=('SF Pro Text', 14),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.idle_label = tk.Label(idle_row, text="0h 0m", font=('SF Pro Text', 13, 'bold'),
+        self.idle_label = tk.Label(idle_row, text="0h 0m", font=('SF Pro Text', 14, 'bold'),
                                   bg='#ffffff', fg='#ff9f0a')
         self.idle_label.pack(side='right')
 
         # Screenshots Row
         screenshot_row = tk.Frame(stats_inner, bg='#ffffff')
-        screenshot_row.pack(fill='x', pady=6)
-        tk.Label(screenshot_row, text="Screenshots", font=('SF Pro Text', 13),
+        screenshot_row.pack(fill='x', pady=7)
+        tk.Label(screenshot_row, text="Screenshots", font=('SF Pro Text', 14),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.screenshot_label = tk.Label(screenshot_row, text="0", font=('SF Pro Text', 13, 'bold'),
-                                        bg='#ffffff', fg='#007aff')
+        self.screenshot_label = tk.Label(screenshot_row, text="0", font=('SF Pro Text', 14, 'bold'),
+                                        bg='#ffffff', fg='#0a84ff')
         self.screenshot_label.pack(side='right')
 
         # Anti-cheat Row
         anticheat_row = tk.Frame(stats_inner, bg='#ffffff')
-        anticheat_row.pack(fill='x', pady=6)
-        tk.Label(anticheat_row, text="Security Status", font=('SF Pro Text', 13),
+        anticheat_row.pack(fill='x', pady=7)
+        tk.Label(anticheat_row, text="Security Status", font=('SF Pro Text', 14),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.anticheat_label = tk.Label(anticheat_row, text="Verified", font=('SF Pro Text', 13, 'bold'),
+        self.anticheat_label = tk.Label(anticheat_row, text="Verified", font=('SF Pro Text', 14, 'bold'),
                                         bg='#ffffff', fg='#34c759')
         self.anticheat_label.pack(side='right')
 
         # Network Row
         network_row = tk.Frame(stats_inner, bg='#ffffff')
-        network_row.pack(fill='x', pady=6)
-        tk.Label(network_row, text="Network Access", font=('SF Pro Text', 13),
+        network_row.pack(fill='x', pady=7)
+        tk.Label(network_row, text="Network Access", font=('SF Pro Text', 14),
                 bg='#ffffff', fg='#86868b').pack(side='left')
-        self.network_label = tk.Label(network_row, text="Disabled", font=('SF Pro Text', 13, 'bold'),
-                                      bg='#ffffff', fg='#8e8e93')
+        self.network_label = tk.Label(network_row, text="Disabled", font=('SF Pro Text', 14, 'bold'),
+                                      bg='#ffffff', fg='#98989d')
         self.network_label.pack(side='right')
 
-        # Timer Card - Prominent display
-        timer_card = tk.Frame(main_container, bg='#ffffff', relief='flat', bd=0)
-        timer_card.pack(fill='x', pady=(0, 20))
+        # Timer Card - Prominent display with better elevation
+        timer_card_outer = tk.Frame(main_container, bg='#e5e5ea', relief='flat', bd=0)
+        timer_card_outer.pack(fill='x', pady=(0, 16))
+
+        timer_card = tk.Frame(timer_card_outer, bg='#ffffff', relief='flat', bd=0)
+        timer_card.pack(fill='both', expand=True, padx=1, pady=1)
 
         timer_inner = tk.Frame(timer_card, bg='#ffffff')
-        timer_inner.pack(padx=24, pady=20)
+        timer_inner.pack(padx=26, pady=26)
 
         self.timer_label = tk.Label(timer_inner, text="00:00:00",
-                                    font=('SF Mono', 36, 'bold'),
+                                    font=('SF Mono', 42, 'bold'),
                                     bg='#ffffff', fg='#34c759')
         self.timer_label.pack()
 
         timer_subtitle = tk.Label(timer_inner, text="Active Time Today",
-                                 font=('SF Pro Text', 13),
+                                 font=('SF Pro Text', 14),
                                  bg='#ffffff', fg='#86868b')
-        timer_subtitle.pack(pady=(4, 0))
+        timer_subtitle.pack(pady=(6, 0))
 
         self.inactive_timer_label = tk.Label(timer_inner, text="Inactive: 0m 0s",
-                                            font=('SF Pro Text', 12),
-                                            bg='#ffffff', fg='#8e8e93')
-        self.inactive_timer_label.pack(pady=(8, 0))
+                                            font=('SF Pro Text', 13),
+                                            bg='#ffffff', fg='#98989d')
+        self.inactive_timer_label.pack(pady=(10, 0))
 
-        # Buttons Section - Grid layout for better visibility
+        # Buttons Section - Modern layout with better spacing
         buttons_frame = tk.Frame(main_container, bg='#f5f5f7')
-        buttons_frame.pack(fill='x', pady=(10, 0))
+        buttons_frame.pack(fill='x', pady=(12, 0))
 
-        # Primary Actions (Row 1)
+        # Primary Actions (Row 1) - More prominent
         primary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
         primary_row.pack(fill='x', pady=(0, 10))
 
         dashboard_btn = tk.Button(primary_row, text="Open Dashboard", command=self.open_dashboard,
-                                 bg='#007aff', fg='white', font=('SF Pro Text', 12, 'bold'),
-                                 relief='flat', bd=0, padx=20, pady=12,
-                                 cursor='hand2', activebackground='#0051d5')
-        dashboard_btn.pack(side='left', expand=True, fill='x', padx=(0, 5))
+                                 bg='#0a84ff', fg='white', font=('SF Pro Text', 13, 'bold'),
+                                 relief='flat', bd=0, padx=22, pady=14,
+                                 cursor='hand2', activebackground='#0066cc')
+        dashboard_btn.pack(side='left', expand=True, fill='x', padx=(0, 6))
 
         admin_btn = tk.Button(primary_row, text="Admin Panel", command=self.show_admin_panel,
-                             bg='#5856d6', fg='white', font=('SF Pro Text', 12, 'bold'),
-                             relief='flat', bd=0, padx=20, pady=12,
-                             cursor='hand2', activebackground='#4745b8')
-        admin_btn.pack(side='left', expand=True, fill='x', padx=(5, 0))
+                             bg='#5e5ce6', fg='white', font=('SF Pro Text', 13, 'bold'),
+                             relief='flat', bd=0, padx=22, pady=14,
+                             cursor='hand2', activebackground='#4845c7')
+        admin_btn.pack(side='left', expand=True, fill='x', padx=(6, 0))
 
-        # Secondary Actions (Row 2)
+        # Secondary Actions (Row 2) - Subtle styling
         secondary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
-        secondary_row.pack(fill='x', pady=(0, 10))
+        secondary_row.pack(fill='x', pady=(0, 0))
 
         minimize_btn = tk.Button(secondary_row, text="Minimize to Tray", command=self.minimize_to_tray,
-                                bg='#e5e5ea', fg='#1d1d1f', font=('SF Pro Text', 12),
-                                relief='flat', bd=0, padx=20, pady=12,
-                                cursor='hand2', activebackground='#d1d1d6')
-        minimize_btn.pack(side='left', expand=True, fill='x', padx=(0, 5))
+                                bg='#ffffff', fg='#1d1d1f', font=('SF Pro Text', 13),
+                                relief='flat', bd=1, padx=22, pady=14,
+                                cursor='hand2', activebackground='#f5f5f7',
+                                highlightthickness=1, highlightbackground='#d1d1d6')
+        minimize_btn.pack(side='left', expand=True, fill='x', padx=(0, 6))
 
         shutdown_btn = tk.Button(secondary_row, text="Shutdown Program", command=self.shutdown_program,
-                                bg='#ff3b30', fg='white', font=('SF Pro Text', 12, 'bold'),
-                                relief='flat', bd=0, padx=20, pady=12,
-                                cursor='hand2', activebackground='#d62f25')
-        shutdown_btn.pack(side='left', expand=True, fill='x', padx=(5, 0))
+                                bg='#ff3b30', fg='white', font=('SF Pro Text', 13, 'bold'),
+                                relief='flat', bd=0, padx=22, pady=14,
+                                cursor='hand2', activebackground='#e0321f')
+        shutdown_btn.pack(side='left', expand=True, fill='x', padx=(6, 0))
 
         # Fullscreen warning window (hidden by default)
         self.warning_window = None
@@ -1848,6 +1862,62 @@ class WorkMonitorApp:
         elif password:
             messagebox.showerror("Error", "Invalid password!")
 
+    def start_overlay_widget(self):
+        """Start the overlay widget subprocess"""
+        import subprocess
+        if self.overlay_script.exists() and self.overlay_process is None:
+            try:
+                self.overlay_process = subprocess.Popen(
+                    [sys.executable, str(self.overlay_script)],
+                    creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                )
+                print(f"Overlay widget started (PID: {self.overlay_process.pid})")
+            except Exception as e:
+                print(f"Failed to start overlay widget: {e}")
+
+    def stop_overlay_widget(self):
+        """Stop the overlay widget subprocess"""
+        if self.overlay_process:
+            try:
+                self.overlay_process.terminate()
+                self.overlay_process.wait(timeout=3)
+                print("Overlay widget stopped")
+            except Exception as e:
+                print(f"Failed to stop overlay widget gracefully: {e}")
+                try:
+                    self.overlay_process.kill()
+                except:
+                    pass
+            finally:
+                self.overlay_process = None
+
+    def hide_overlay_widget(self):
+        """Hide the overlay widget"""
+        self.stop_overlay_widget()
+
+    def show_overlay_widget(self):
+        """Show the overlay widget"""
+        if self.overlay_process is None:
+            self.start_overlay_widget()
+
+    def toggle_overlay_widget(self):
+        """Toggle overlay widget visibility"""
+        if self.overlay_process is None:
+            self.show_overlay_widget()
+        else:
+            self.hide_overlay_widget()
+
+    def is_overlay_widget_visible(self):
+        """Check if overlay widget is currently running"""
+        if self.overlay_process is None:
+            return False
+        # Check if process is still alive
+        if self.overlay_process.poll() is not None:
+            # Process has terminated
+            self.overlay_process = None
+            return False
+        return True
+
     def minimize_to_tray(self):
         """Minimize to system tray"""
         self.root.withdraw()
@@ -1871,12 +1941,31 @@ class WorkMonitorApp:
             icon.stop()
             self.root.deiconify()
 
+        def on_toggle_widget(icon, item):
+            self.toggle_overlay_widget()
+
+        def on_show_widget(icon, item):
+            self.show_overlay_widget()
+
+        def on_hide_widget(icon, item):
+            self.hide_overlay_widget()
+
         def on_exit(icon, item):
             icon.stop()
             self.quit_app()
 
+        # Create dynamic menu with widget visibility state
+        def get_widget_menu_item():
+            if self.is_overlay_widget_visible():
+                return item('Hide Floating Widget', on_hide_widget)
+            else:
+                return item('Show Floating Widget', on_show_widget)
+
         menu = pystray.Menu(
             item('Show', on_show, default=True),
+            pystray.Menu.SEPARATOR,
+            get_widget_menu_item(),
+            pystray.Menu.SEPARATOR,
             item('Exit', on_exit)
         )
 
@@ -1963,7 +2052,7 @@ def set_windows_appid():
 
 
 def ensure_single_instance():
-    """Ensure only one instance of the application is running. Close any existing instances."""
+    """Ensure only one instance of the application is running. Prompt user if instance exists."""
     lock_file = DATA_DIR / "app.lock"
     current_pid = os.getpid()
 
@@ -1980,18 +2069,31 @@ def ensure_single_instance():
                     old_process = psutil.Process(old_pid)
                     # Check if it's actually our app (by name)
                     if 'python' in old_process.name().lower() or 'work_monitor' in old_process.name().lower():
-                        print(f"Found existing instance (PID: {old_pid}). Terminating...")
-                        old_process.terminate()
-                        # Wait up to 5 seconds for graceful termination
-                        old_process.wait(timeout=5)
-                        print("Previous instance terminated successfully.")
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired) as e:
-                    print(f"Could not terminate old process: {e}")
+                        # Show error dialog and exit without launching
+                        import tkinter as tk
+                        from tkinter import messagebox
+
+                        root = tk.Tk()
+                        root.withdraw()  # Hide the main window
+                        messagebox.showerror(
+                            "Application Already Running",
+                            "The application is already running.\n\n"
+                            "Please close the existing instance before starting a new one.\n\n"
+                            f"Existing instance PID: {old_pid}"
+                        )
+                        root.destroy()
+                        print(f"Cannot start - instance already running (PID: {old_pid})")
+                        sys.exit(0)
+                except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                    print(f"Could not verify old process: {e}")
+                    # Process doesn't exist or can't access - remove stale lock
+                    lock_file.unlink(missing_ok=True)
                 except Exception as e:
                     print(f"Error handling old instance: {e}")
 
-            # Remove stale lock file
-            lock_file.unlink(missing_ok=True)
+            # Remove stale lock file if process doesn't exist
+            else:
+                lock_file.unlink(missing_ok=True)
         except Exception as e:
             print(f"Error reading lock file: {e}")
             lock_file.unlink(missing_ok=True)
@@ -2019,22 +2121,19 @@ def main():
         setup_autostart()
         print("Autostart configured. Application will run on Windows startup.")
 
+    # Create app instance
+    app = WorkMonitorApp()
+
     # Launch overlay widget as subprocess
     overlay_script = BASE_DIR / "src" / "overlay_widget.py"
-    overlay_process = None
     if overlay_script.exists():
-        overlay_process = subprocess.Popen(
-            [sys.executable, str(overlay_script)],
-            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
-        )
+        app.start_overlay_widget()
 
     try:
-        app = WorkMonitorApp()
         app.run()
     finally:
         # Kill overlay widget when main app exits
-        if overlay_process:
-            overlay_process.terminate()
+        app.stop_overlay_widget()
 
 
 if __name__ == "__main__":
