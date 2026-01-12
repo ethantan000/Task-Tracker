@@ -21,7 +21,12 @@ echo [OK] Python found!
 
 :: Install packages
 echo [*] Installing packages...
-python -m pip install pillow pystray schedule --quiet
+echo     - Pillow (PIL)
+echo     - pystray
+echo     - schedule
+echo     - psutil
+echo.
+python -m pip install pillow pystray schedule psutil --quiet
 if %errorlevel% neq 0 (
     echo [ERROR] Failed to install packages
     pause
