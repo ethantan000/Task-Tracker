@@ -39,15 +39,28 @@ import tkinter as tk
 from tkinter import Menu
 import json
 import base64
+import logging
 from pathlib import Path
 from datetime import datetime
+
+# Configure logging
+logging.basicConfig(
+    level=logging.ERROR,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(Path(__file__).parent.parent / ".cache" / "overlay_widget.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 def decode_data(encoded_str):
     """Decode base64 data to JSON"""
     try:
         json_str = base64.b64decode(encoded_str.encode()).decode()
         return json.loads(json_str)
-    except:
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as e:
+        logger.error(f"Failed to decode data: {e}")
         return None
 
 def get_log_filename(date_str):
@@ -64,8 +77,9 @@ class OverlayWidget:
             import ctypes
             myappid = 'com.enkhtamir.WorkMonitor.1.0'
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-        except:
-            pass
+        except (AttributeError, OSError) as e:
+            # Not on Windows or API not available
+            logger.debug(f"Could not set Windows AppUserModelID: {e}")
 
         # Remove title bar and borders
         self.root.overrideredirect(True)
@@ -277,12 +291,12 @@ class OverlayWidget:
             if self.prefs_file.exists():
                 with open(self.prefs_file, 'r') as f:
                     return json.load(f)
-        except:
-            pass
+        except (IOError, json.JSONDecodeError, OSError) as e:
+            logger.error(f"Failed to load preferences from {self.prefs_file}: {e}")
         return {}
 
     def save_preferences(self):
-        """Save user preferences to file"""
+        """Save user preferences to file using atomic write"""
         try:
             # Get current position
             x = self.root.winfo_x()
@@ -298,10 +312,14 @@ class OverlayWidget:
             }
 
             self.data_dir.mkdir(exist_ok=True)
-            with open(self.prefs_file, 'w') as f:
+
+            # Atomic write: write to temp file, then rename
+            temp_file = self.prefs_file.with_suffix('.tmp')
+            with open(temp_file, 'w') as f:
                 json.dump(self.prefs, f, indent=2)
-        except Exception as e:
-            print(f"Error saving preferences: {e}")
+            temp_file.replace(self.prefs_file)
+        except (IOError, OSError) as e:
+            logger.error(f"Error saving preferences: {e}")
 
     def position_widget(self):
         """Position widget using saved position or default to bottom-right corner"""
@@ -475,8 +493,8 @@ class OverlayWidget:
                     data = decode_data(encoded)
                     if data:
                         return data
-        except:
-            pass
+        except (IOError, OSError) as e:
+            logger.error(f"Failed to read config from {self.config_file}: {e}")
         return {}
 
     def read_work_data(self):
@@ -491,8 +509,8 @@ class OverlayWidget:
                     data = decode_data(encoded)
                     if data:
                         return data
-        except:
-            pass
+        except (IOError, OSError) as e:
+            logger.error(f"Failed to read work data: {e}")
         return {}
 
     def format_time(self, seconds):
@@ -533,7 +551,8 @@ class OverlayWidget:
                 for child in self.top_frame.winfo_children():
                     if isinstance(child, tk.Frame):
                         child.config(bg='#4a1a1a')
-            except:
+            except (ValueError, TypeError) as e:
+                logger.error(f"Failed to parse idle start time '{current_idle_start}': {e}")
                 self.time_label.config(text="IDLE", fg='#e74c3c', bg='#4a1a1a')
         else:
             # Update work time
