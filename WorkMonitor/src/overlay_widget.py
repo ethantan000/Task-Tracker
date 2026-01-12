@@ -59,6 +59,14 @@ class OverlayWidget:
     def __init__(self):
         self.root = tk.Tk()
 
+        # Set Windows AppUserModelID for proper taskbar display
+        try:
+            import ctypes
+            myappid = 'com.enkhtamir.WorkMonitor.1.0'
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        except:
+            pass
+
         # Remove title bar and borders
         self.root.overrideredirect(True)
 
