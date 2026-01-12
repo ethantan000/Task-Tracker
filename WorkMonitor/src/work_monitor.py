@@ -1787,8 +1787,21 @@ def setup_autostart():
         return False
 
 
+def set_windows_appid():
+    """Set Windows AppUserModelID for proper taskbar display"""
+    try:
+        import ctypes
+        myappid = f'com.enkhtamir.{APP_NAME}.1.0'  # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except Exception as e:
+        print(f"Could not set Windows AppUserModelID: {e}")
+
+
 def main():
     import subprocess
+
+    # Set Windows app ID for proper taskbar/task manager display
+    set_windows_appid()
 
     # Setup autostart on first run
     if not CONFIG_FILE.exists():
