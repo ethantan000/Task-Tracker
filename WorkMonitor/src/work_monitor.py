@@ -24,6 +24,7 @@ import math
 import statistics
 from collections import deque
 from email_reports import EmailReportSender
+from dashboard_server import DashboardServer
 
 # Try to import required packages
 try:
@@ -113,6 +114,9 @@ DEFAULT_CONFIG = {
     "smtp_username": "",
     "smtp_password": "",
     "smtp_use_tls": True,
+    # Network dashboard settings
+    "dashboard_server_enabled": False,
+    "dashboard_port": 8080,
 }
 
 
@@ -1015,13 +1019,14 @@ class HTMLReportGenerator:
 class AdminPanel(tk.Toplevel):
     """Admin configuration panel"""
 
-    def __init__(self, parent, config, logger=None, email_sender=None):
+    def __init__(self, parent, config, logger=None, email_sender=None, dashboard_server=None):
         super().__init__(parent)
         self.config = config
         self.logger = logger
         self.email_sender = email_sender
+        self.dashboard_server = dashboard_server
         self.title("Admin Panel - Work Monitor")
-        self.geometry("600x750")
+        self.geometry("600x850")
         self.configure(bg='#2c3e50')
         self.resizable(False, False)
 
@@ -1130,6 +1135,33 @@ class AdminPanel(tk.Toplevel):
         self.smtp_password.insert(0, str(self.config.get('smtp_password')))
         self.smtp_password.pack(fill='x')
 
+        # Network Dashboard Settings Section
+        tk.Label(frame, text="━━━━━━━━━━━━━━━━━━━━━━", bg='#2c3e50', fg='#666',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(20, 5))
+        tk.Label(frame, text="🌐 Network Dashboard Access", bg='#2c3e50', fg='#3498db',
+                font=('Segoe UI', 12, 'bold')).pack(anchor='w', pady=(5, 10))
+
+        # Enable Network Access
+        self.dashboard_server_enabled = tk.BooleanVar(value=self.config.get('dashboard_server_enabled'))
+        tk.Checkbutton(frame, text="Enable Network Access to Dashboard",
+                      variable=self.dashboard_server_enabled, bg='#2c3e50', fg='white',
+                      selectcolor='#34495e', font=('Segoe UI', 10)).pack(anchor='w', pady=5)
+
+        # Dashboard Port
+        tk.Label(frame, text="Dashboard Port:", bg='#2c3e50', fg='white',
+                font=('Segoe UI', 10)).pack(anchor='w', pady=(10, 2))
+        self.dashboard_port = tk.Entry(frame, font=('Segoe UI', 11))
+        self.dashboard_port.insert(0, str(self.config.get('dashboard_port')))
+        self.dashboard_port.pack(fill='x')
+
+        # Display network URL if server is running
+        if self.dashboard_server and self.dashboard_server.is_running():
+            url = self.dashboard_server.get_access_url()
+            if url:
+                url_label = tk.Label(frame, text=f"📡 Access at: {url}", bg='#2c3e50', fg='#2ecc71',
+                                    font=('Segoe UI', 10, 'bold'))
+                url_label.pack(anchor='w', pady=(5, 0))
+
         # Buttons Row 1
         btn_frame1 = tk.Frame(self, bg='#2c3e50')
         btn_frame1.pack(pady=15)
@@ -1178,7 +1210,11 @@ class AdminPanel(tk.Toplevel):
             self.config.set('smtp_username', self.smtp_username.get())
             self.config.set('smtp_password', self.smtp_password.get())
 
-            messagebox.showinfo("Success", "Settings saved successfully! Restart the app to apply email scheduler changes.")
+            # Save network dashboard settings
+            self.config.set('dashboard_server_enabled', self.dashboard_server_enabled.get())
+            self.config.set('dashboard_port', int(self.dashboard_port.get()))
+
+            messagebox.showinfo("Success", "Settings saved successfully! Restart the app to apply changes.")
             self.destroy()
         except ValueError:
             messagebox.showerror("Error", "Please enter valid numbers")
@@ -1289,6 +1325,9 @@ class WorkMonitorApp:
         # Initialize email report sender
         self.email_sender = EmailReportSender(self.config, ActivityLogger)
 
+        # Initialize dashboard server
+        self.dashboard_server = DashboardServer(self.config, BASE_DIR)
+
         self.running = True
         self.is_working = False
         self.is_suspicious = False  # Anti-cheat flag
@@ -1298,7 +1337,7 @@ class WorkMonitorApp:
         # Create main window
         self.root = tk.Tk()
         self.root.title("Work Monitor")
-        self.root.geometry("500x450")  # Slightly taller for anti-cheat status
+        self.root.geometry("500x480")  # Taller for anti-cheat and network status
         self.root.configure(bg='#1a1a2e')
         self.root.protocol("WM_DELETE_WINDOW", self.minimize_to_tray)
 
@@ -1308,6 +1347,10 @@ class WorkMonitorApp:
         # Start email scheduler if enabled
         if self.config.get('email_enabled'):
             self.email_sender.start_scheduler()
+
+        # Start dashboard server if enabled
+        if self.config.get('dashboard_server_enabled'):
+            self.dashboard_server.start()
 
         # Cleanup old screenshots on start
         removed = self.screenshot_manager.cleanup_old()
@@ -1352,6 +1395,11 @@ class WorkMonitorApp:
         self.anticheat_label = tk.Label(stats_frame, text="Anti-Cheat: OK", font=('Segoe UI', 14),
                                         bg='#1a1a2e', fg='#4CAF50')
         self.anticheat_label.pack(anchor='w')
+
+        # Network server status
+        self.network_label = tk.Label(stats_frame, text="Network: Disabled", font=('Segoe UI', 14),
+                                      bg='#1a1a2e', fg='#888888')
+        self.network_label.pack(anchor='w')
 
         # Timer display
         timer_frame = tk.Frame(self.root, bg='#16213e', relief='raised', bd=2)
@@ -1609,6 +1657,13 @@ class WorkMonitorApp:
             else:
                 self.anticheat_label.configure(text="Anti-Cheat: OK", fg='#4CAF50')
 
+            # Update network server status
+            if self.dashboard_server.is_running():
+                url = self.dashboard_server.get_access_url()
+                self.network_label.configure(text=f"Network: {url}", fg='#2ecc71')
+            else:
+                self.network_label.configure(text="Network: Disabled", fg='#888888')
+
         except Exception as e:
             print(f"UI update error: {e}")
 
@@ -1627,7 +1682,7 @@ class WorkMonitorApp:
         password = simpledialog.askstring("Admin Login", "Enter admin password:",
                                          show='*', parent=self.root)
         if password and self.config.verify_password(password):
-            AdminPanel(self.root, self.config, self.logger, self.email_sender)
+            AdminPanel(self.root, self.config, self.logger, self.email_sender, self.dashboard_server)
         elif password:
             messagebox.showerror("Error", "Invalid password!")
 
@@ -1664,6 +1719,9 @@ class WorkMonitorApp:
         # Stop email scheduler
         if hasattr(self, 'email_sender'):
             self.email_sender.stop_scheduler()
+        # Stop dashboard server
+        if hasattr(self, 'dashboard_server'):
+            self.dashboard_server.stop()
         self.root.quit()
         self.root.destroy()
 
