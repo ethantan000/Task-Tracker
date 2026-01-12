@@ -568,8 +568,8 @@ class ActivityLogger:
                 returned_dt = datetime.fromisoformat(period["returned"])
                 duration_mins = int(period["duration_seconds"] / 60)
                 periods.append({
-                    "left": left_dt.strftime("%H:%M:%S"),
-                    "returned": returned_dt.strftime("%H:%M:%S"),
+                    "left": left_dt.strftime("%I:%M:%S %p"),
+                    "returned": returned_dt.strftime("%I:%M:%S %p"),
                     "duration": f"{duration_mins} min"
                 })
             except:
@@ -738,8 +738,11 @@ class HTMLReportGenerator:
     @staticmethod
     def generate_dashboard(summary, config, screenshots_today=None, logger=None):
         """Generate main dashboard HTML with all views"""
-        work_start = f"{config.get('work_start_hour'):02d}:{config.get('work_start_minute'):02d}"
-        work_end = f"{config.get('work_end_hour'):02d}:{config.get('work_end_minute'):02d}"
+        # Convert work hours to 12-hour format with AM/PM
+        work_start_dt = datetime.now().replace(hour=config.get('work_start_hour'), minute=config.get('work_start_minute'))
+        work_end_dt = datetime.now().replace(hour=config.get('work_end_hour'), minute=config.get('work_end_minute'))
+        work_start = work_start_dt.strftime("%I:%M %p")
+        work_end = work_end_dt.strftime("%I:%M %p")
 
         # Get period summaries
         week_summary = ActivityLogger.get_week_summary()
@@ -751,7 +754,7 @@ class HTMLReportGenerator:
             html = ""
             if screenshots_list:
                 for ss in screenshots_list[-max_count:]:
-                    ss_time = datetime.fromisoformat(ss['time']).strftime("%Y-%m-%d %H:%M")
+                    ss_time = datetime.fromisoformat(ss['time']).strftime("%Y-%m-%d %I:%M %p")
                     ss_path = ss.get('path', '')
                     suspicious = ss.get('suspicious', False)
                     border_style = 'border: 2px solid #e91e63;' if suspicious else 'border: 2px solid #333;'
@@ -765,7 +768,7 @@ class HTMLReportGenerator:
         screenshots_html = ""
         if screenshots_today:
             for ss in screenshots_today[-20:]:  # Show last 20
-                ss_time = datetime.fromisoformat(ss['time']).strftime("%H:%M:%S")
+                ss_time = datetime.fromisoformat(ss['time']).strftime("%I:%M:%S %p")
                 ss_path = ss.get('path', '')
                 suspicious = ss.get('suspicious', False)
                 border_style = 'border: 2px solid #e91e63;' if suspicious else 'border: 2px solid #333;'
