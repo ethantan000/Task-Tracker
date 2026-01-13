@@ -1073,29 +1073,44 @@ class AdminPanel(tk.Toplevel):
     """Admin configuration panel with Apple-inspired design"""
 
     def __init__(self, parent, config, logger=None, email_sender=None, dashboard_server=None):
+        print("AdminPanel.__init__: Starting initialization...")
         super().__init__(parent)
+        print(f"AdminPanel.__init__: Toplevel created, parent={parent}")
+
         self.config = config
         self.logger = logger
         self.email_sender = email_sender
         self.dashboard_server = dashboard_server
+
         self.title("Settings - WorkMonitor")
         self.geometry("700x900")
         self.configure(bg='#f5f5f7')
         self.resizable(True, True)
         self.minsize(700, 900)
+        print("AdminPanel.__init__: Basic window properties set")
 
         # Make sure window appears on top and is visible
         self.transient(parent)  # Make window appear on top of parent
+        print("AdminPanel.__init__: Set as transient")
         self.lift()  # Bring to front
+        print("AdminPanel.__init__: Lifted to front")
         self.focus_force()  # Grab focus
+        print("AdminPanel.__init__: Focus forced")
 
+        print("AdminPanel.__init__: Creating widgets...")
         self.create_widgets()
+        print("AdminPanel.__init__: Widgets created")
 
         # Center window on screen
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (700 // 2)
-        y = (self.winfo_screenheight() // 2) - (900 // 2)
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        x = (screen_w // 2) - (700 // 2)
+        y = (screen_h // 2) - (900 // 2)
         self.geometry(f'700x900+{x}+{y}')
+        print(f"AdminPanel.__init__: Window centered at ({x}, {y})")
+        print(f"AdminPanel.__init__: Screen size: {screen_w}x{screen_h}")
+        print("AdminPanel.__init__: ✅ Initialization complete!")
 
     def create_widgets(self):
         """Create admin panel widgets with modern, sectioned design"""
@@ -1522,11 +1537,22 @@ class WorkMonitorApp:
         # Create main window with Apple-inspired design
         self.root = tk.Tk()
         self.root.title("WorkMonitor")
-        self.root.geometry("560x950")  # Increased height to show all controls including buttons
+
+        # Detect screen size and set appropriate window size
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        print(f"Screen resolution detected: {screen_width}x{screen_height}")
+
+        # Calculate optimal window size (max 560x950, but adapt to screen)
+        window_width = min(560, screen_width - 100)
+        window_height = min(950, screen_height - 100)
+        print(f"Window size set to: {window_width}x{window_height}")
+
+        self.root.geometry(f"{window_width}x{window_height}")
         self.root.configure(bg='#f5f5f7')  # Apple-style light gray
         self.root.protocol("WM_DELETE_WINDOW", self.minimize_to_tray)
         self.root.resizable(True, True)  # Allow resizing for flexibility
-        self.root.minsize(560, 950)  # Minimum size to show all controls
+        self.root.minsize(560, min(700, screen_height - 200))  # Adaptive minimum size
 
         # Set window icon
         icon_path = BASE_DIR / "icon.ico"
@@ -1554,9 +1580,35 @@ class WorkMonitorApp:
 
     def setup_ui(self):
         """Setup the main UI with Apple 2026-inspired design"""
-        # Main container with padding optimized for 950px height
-        main_container = tk.Frame(self.root, bg='#f5f5f7')
-        main_container.pack(fill='both', expand=True, padx=30, pady=25)
+        print("Setting up UI...")
+
+        # Create scrollable container for smaller screens
+        canvas = tk.Canvas(self.root, bg='#f5f5f7', highlightthickness=0)
+        scrollbar = tk.Scrollbar(self.root, orient='vertical', command=canvas.yview)
+
+        # Main container with padding
+        main_container = tk.Frame(canvas, bg='#f5f5f7')
+
+        # Configure scrolling
+        main_container.bind(
+            '<Configure>',
+            lambda e: canvas.configure(scrollregion=canvas.bbox('all'))
+        )
+
+        canvas.create_window((0, 0), window=main_container, anchor='nw', width=self.root.winfo_screenwidth() - 100)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Pack canvas and scrollbar
+        canvas.pack(side='left', fill='both', expand=True)
+        scrollbar.pack(side='right', fill='y')
+
+        # Add padding to main container content
+        content_frame = tk.Frame(main_container, bg='#f5f5f7')
+        content_frame.pack(fill='both', expand=True, padx=30, pady=25)
+
+        # Replace main_container with content_frame for all child widgets
+        main_container = content_frame
+        print("UI container created with scrolling support")
 
         # Title Section - Bold and prominent
         title_label = tk.Label(main_container, text="WorkMonitor",
@@ -1659,6 +1711,7 @@ class WorkMonitorApp:
         self.inactive_timer_label.pack(pady=(12, 0))
 
         # Buttons Section - Modern button styling
+        print("Creating buttons section...")
         buttons_frame = tk.Frame(main_container, bg='#f5f5f7')
         buttons_frame.pack(fill='x', pady=(14, 0))
 
@@ -1666,24 +1719,29 @@ class WorkMonitorApp:
         primary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
         primary_row.pack(fill='x', pady=(0, 12))
 
+        print("Creating 'Open Dashboard' button...")
         dashboard_btn = tk.Button(primary_row, text="Open Dashboard", command=self.open_dashboard,
                                  bg='#0a84ff', fg='white', font=('Segoe UI', 14, 'bold'),
                                  relief='flat', bd=0, padx=24, pady=16,
                                  cursor='hand2', activebackground='#0066cc',
                                  activeforeground='white')
         dashboard_btn.pack(side='left', expand=True, fill='x', padx=(0, 8))
+        print(f"✓ Dashboard button created and packed")
 
+        print("Creating 'Admin Panel' button...")
         admin_btn = tk.Button(primary_row, text="Admin Panel", command=self.show_admin_panel,
                              bg='#5e5ce6', fg='white', font=('Segoe UI', 14, 'bold'),
                              relief='flat', bd=0, padx=24, pady=16,
                              cursor='hand2', activebackground='#4845c7',
                              activeforeground='white')
         admin_btn.pack(side='left', expand=True, fill='x', padx=(8, 0))
+        print(f"✓ Admin Panel button created and packed")
 
         # Secondary Actions (Row 2)
         secondary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
         secondary_row.pack(fill='x')
 
+        print("Creating 'Minimize to Tray' button...")
         minimize_btn = tk.Button(secondary_row, text="Minimize to Tray", command=self.minimize_to_tray,
                                 bg='#ffffff', fg='#1d1d1f', font=('Segoe UI', 14),
                                 relief='flat', bd=0, padx=24, pady=16,
@@ -1691,16 +1749,25 @@ class WorkMonitorApp:
                                 highlightthickness=1, highlightbackground='#d1d1d6',
                                 activeforeground='#1d1d1f')
         minimize_btn.pack(side='left', expand=True, fill='x', padx=(0, 8))
+        print(f"✓ Minimize button created and packed")
 
+        print("Creating 'Shutdown Program' button...")
         shutdown_btn = tk.Button(secondary_row, text="Shutdown Program", command=self.shutdown_program,
                                 bg='#ff3b30', fg='white', font=('Segoe UI', 14, 'bold'),
                                 relief='flat', bd=0, padx=24, pady=16,
                                 cursor='hand2', activebackground='#e0321f',
                                 activeforeground='white')
         shutdown_btn.pack(side='left', expand=True, fill='x', padx=(8, 0))
+        print(f"✓ Shutdown button created and packed")
+
+        print("✅ ALL 4 BUTTONS CREATED SUCCESSFULLY")
 
         # Fullscreen warning window (hidden by default)
         self.warning_window = None
+
+        # Ensure canvas updates to show all content
+        self.root.update_idletasks()
+        print(f"UI setup complete. Total window height: {self.root.winfo_height()}px")
 
     def is_work_hours(self):
         """Check if current time is within work hours"""
@@ -1946,17 +2013,36 @@ class WorkMonitorApp:
 
     def show_admin_panel(self):
         """Show admin panel with password"""
+        print("="*70)
+        print("ADMIN PANEL: Opening password dialog...")
         try:
             password = simpledialog.askstring("Admin Login", "Enter admin password:",
                                              show='*', parent=self.root)
-            if password and self.config.verify_password(password):
+
+            if not password:
+                print("ADMIN PANEL: User cancelled password dialog")
+                return
+
+            print(f"ADMIN PANEL: Password entered, verifying...")
+            if self.config.verify_password(password):
+                print("ADMIN PANEL: ✓ Password correct, creating panel...")
+
                 # Store reference to prevent garbage collection
-                self.admin_panel = AdminPanel(self.root, self.config, self.logger, self.email_sender, self.dashboard_server)
-                print("Admin panel created successfully")
-            elif password:
+                self.admin_panel = AdminPanel(self.root, self.config, self.logger,
+                                              self.email_sender, self.dashboard_server)
+
+                print("ADMIN PANEL: ✅ Admin panel created and stored in self.admin_panel")
+                print(f"ADMIN PANEL: Panel object type: {type(self.admin_panel)}")
+                print(f"ADMIN PANEL: Panel window exists: {self.admin_panel.winfo_exists()}")
+                print(f"ADMIN PANEL: Panel is visible: {self.admin_panel.winfo_viewable()}")
+                print("="*70)
+            else:
+                print("ADMIN PANEL: ❌ Invalid password")
                 messagebox.showerror("Error", "Invalid password!")
         except Exception as e:
-            print(f"Error opening admin panel: {e}")
+            print(f"ADMIN PANEL: ❌ CRITICAL ERROR: {e}")
+            import traceback
+            traceback.print_exc()
             messagebox.showerror("Error", f"Failed to open admin panel: {str(e)}")
 
     def start_overlay_widget(self):
