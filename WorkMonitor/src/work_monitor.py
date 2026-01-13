@@ -1511,11 +1511,11 @@ class WorkMonitorApp:
         # Create main window with Apple-inspired design
         self.root = tk.Tk()
         self.root.title("WorkMonitor")
-        self.root.geometry("560x640")  # Larger for better spacing and all controls
+        self.root.geometry("560x800")  # Larger for better spacing and all controls
         self.root.configure(bg='#f5f5f7')  # Apple-style light gray
         self.root.protocol("WM_DELETE_WINDOW", self.minimize_to_tray)
         self.root.resizable(True, True)  # Allow resizing for flexibility
-        self.root.minsize(560, 640)  # Minimum size to show all controls
+        self.root.minsize(560, 800)  # Minimum size to show all controls
 
         # Set window icon
         icon_path = BASE_DIR / "icon.ico"
@@ -1938,7 +1938,8 @@ class WorkMonitorApp:
         password = simpledialog.askstring("Admin Login", "Enter admin password:",
                                          show='*', parent=self.root)
         if password and self.config.verify_password(password):
-            AdminPanel(self.root, self.config, self.logger, self.email_sender, self.dashboard_server)
+            # Store reference to prevent garbage collection
+            self.admin_panel = AdminPanel(self.root, self.config, self.logger, self.email_sender, self.dashboard_server)
         elif password:
             messagebox.showerror("Error", "Invalid password!")
 
