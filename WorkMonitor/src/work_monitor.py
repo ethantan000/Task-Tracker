@@ -1070,36 +1070,32 @@ class HTMLReportGenerator:
 
 
 class AdminPanel(tk.Toplevel):
-    """Admin configuration panel with Apple-inspired design"""
+    """Admin configuration panel with centralized lifecycle management"""
 
-    def __init__(self, parent, config, logger=None, email_sender=None, dashboard_server=None):
-        print("AdminPanel.__init__: Starting initialization...")
+    def __init__(self, parent, config, logger=None, email_sender=None, dashboard_server=None, on_close_callback=None):
         super().__init__(parent)
-        print(f"AdminPanel.__init__: Toplevel created, parent={parent}")
 
         self.config = config
         self.logger = logger
         self.email_sender = email_sender
         self.dashboard_server = dashboard_server
+        self.on_close_callback = on_close_callback
 
         self.title("Settings - WorkMonitor")
         self.geometry("700x900")
         self.configure(bg='#f5f5f7')
         self.resizable(True, True)
         self.minsize(700, 900)
-        print("AdminPanel.__init__: Basic window properties set")
+
+        # Setup close handler for cleanup
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         # Make sure window appears on top and is visible
-        self.transient(parent)  # Make window appear on top of parent
-        print("AdminPanel.__init__: Set as transient")
-        self.lift()  # Bring to front
-        print("AdminPanel.__init__: Lifted to front")
-        self.focus_force()  # Grab focus
-        print("AdminPanel.__init__: Focus forced")
+        self.transient(parent)
+        self.lift()
+        self.focus_force()
 
-        print("AdminPanel.__init__: Creating widgets...")
         self.create_widgets()
-        print("AdminPanel.__init__: Widgets created")
 
         # Center window on screen
         self.update_idletasks()
@@ -1108,9 +1104,12 @@ class AdminPanel(tk.Toplevel):
         x = (screen_w // 2) - (700 // 2)
         y = (screen_h // 2) - (900 // 2)
         self.geometry(f'700x900+{x}+{y}')
-        print(f"AdminPanel.__init__: Window centered at ({x}, {y})")
-        print(f"AdminPanel.__init__: Screen size: {screen_w}x{screen_h}")
-        print("AdminPanel.__init__: ✅ Initialization complete!")
+
+    def _on_close(self):
+        """Handle window close - call callback before destroying"""
+        if self.on_close_callback:
+            self.on_close_callback()
+        self.destroy()
 
     def create_widgets(self):
         """Create admin panel widgets with modern, sectioned design"""
@@ -1375,7 +1374,7 @@ class AdminPanel(tk.Toplevel):
                     messagebox.showwarning("Warning", "Settings saved but autostart removal failed.\n\nCheck permissions and try again.")
 
             messagebox.showinfo("Success", "✓ Settings saved successfully!\n\nRestart the app to apply changes.")
-            self.destroy()
+            self._on_close()  # Use close handler to trigger cleanup callback
         except ValueError as e:
             messagebox.showerror("Error", f"Please enter valid numbers in all fields.\n\nDetails: {str(e)}")
 
@@ -1534,6 +1533,10 @@ class WorkMonitorApp:
         self.overlay_process = None
         self.overlay_script = BASE_DIR / "src" / "overlay_widget.py"
 
+        # Initialize window references (centralized lifecycle management)
+        self.admin_panel = None
+        self.warning_window = None
+
         # Create main window with Apple-inspired design
         self.root = tk.Tk()
         self.root.title("WorkMonitor")
@@ -1581,43 +1584,11 @@ class WorkMonitorApp:
             print(f"Cleaned up {removed} old screenshots")
 
     def setup_ui(self):
-        """Setup the main UI with Apple 2026-inspired design"""
-        print("Setting up UI...")
-
-        # LAYOUT FIX: Use scrollable layout for smaller screens, simple layout for larger screens
-        screen_height = self.root.winfo_screenheight()
-        window_height = self.root.winfo_height()
-
-        # If screen is too small to show all content (< 800px), use scrollable canvas
-        if window_height < 800:
-            print(f"Small screen detected ({window_height}px), enabling scrollable layout...")
-            canvas = tk.Canvas(self.root, bg='#f5f5f7', highlightthickness=0)
-            scrollbar = tk.Scrollbar(self.root, orient='vertical', command=canvas.yview)
-
-            main_container = tk.Frame(canvas, bg='#f5f5f7')
-
-            main_container.bind(
-                '<Configure>',
-                lambda e: canvas.configure(scrollregion=canvas.bbox('all'))
-            )
-
-            canvas.create_window((0, 0), window=main_container, anchor='nw', width=500)
-            canvas.configure(yscrollcommand=scrollbar.set)
-
-            canvas.pack(side='left', fill='both', expand=True)
-            scrollbar.pack(side='right', fill='y')
-
-            # Add padding frame
-            content_frame = tk.Frame(main_container, bg='#f5f5f7')
-            content_frame.pack(fill='both', expand=True, padx=30, pady=20)
-            main_container = content_frame
-            print("Scrollable UI container created")
-        else:
-            # For larger screens, use simple layout
-            print(f"Standard screen detected ({window_height}px), using simple layout...")
-            main_container = tk.Frame(self.root, bg='#f5f5f7')
-            main_container.pack(fill='both', expand=True, padx=30, pady=20)
-            print("Simple UI container created successfully")
+        """Setup the main UI with clean, simple layout"""
+        # Use simple pack-based layout - window size already configured appropriately
+        # All controls will be visible at default 850px height
+        main_container = tk.Frame(self.root, bg='#f5f5f7')
+        main_container.pack(fill='both', expand=True, padx=30, pady=20)
 
         # Title Section - Bold and prominent
         title_label = tk.Label(main_container, text="WorkMonitor",
@@ -1719,8 +1690,7 @@ class WorkMonitorApp:
                                             bg='#ffffff', fg='#98989d')
         self.inactive_timer_label.pack(pady=(12, 0))
 
-        # Buttons Section - Modern button styling
-        print("Creating buttons section...")
+        # Buttons Section
         buttons_frame = tk.Frame(main_container, bg='#f5f5f7')
         buttons_frame.pack(fill='x', pady=(14, 0))
 
@@ -1728,29 +1698,24 @@ class WorkMonitorApp:
         primary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
         primary_row.pack(fill='x', pady=(0, 12))
 
-        print("Creating 'Open Dashboard' button...")
         dashboard_btn = tk.Button(primary_row, text="Open Dashboard", command=self.open_dashboard,
                                  bg='#0a84ff', fg='white', font=('Segoe UI', 14, 'bold'),
                                  relief='flat', bd=0, padx=24, pady=16,
                                  cursor='hand2', activebackground='#0066cc',
                                  activeforeground='white')
         dashboard_btn.pack(side='left', expand=True, fill='x', padx=(0, 8))
-        print(f"✓ Dashboard button created and packed")
 
-        print("Creating 'Admin Panel' button...")
         admin_btn = tk.Button(primary_row, text="Admin Panel", command=self.show_admin_panel,
                              bg='#5e5ce6', fg='white', font=('Segoe UI', 14, 'bold'),
                              relief='flat', bd=0, padx=24, pady=16,
                              cursor='hand2', activebackground='#4845c7',
                              activeforeground='white')
         admin_btn.pack(side='left', expand=True, fill='x', padx=(8, 0))
-        print(f"✓ Admin Panel button created and packed")
 
         # Secondary Actions (Row 2)
         secondary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
         secondary_row.pack(fill='x')
 
-        print("Creating 'Minimize to Tray' button...")
         minimize_btn = tk.Button(secondary_row, text="Minimize to Tray", command=self.minimize_to_tray,
                                 bg='#ffffff', fg='#1d1d1f', font=('Segoe UI', 14),
                                 relief='flat', bd=0, padx=24, pady=16,
@@ -1758,25 +1723,13 @@ class WorkMonitorApp:
                                 highlightthickness=1, highlightbackground='#d1d1d6',
                                 activeforeground='#1d1d1f')
         minimize_btn.pack(side='left', expand=True, fill='x', padx=(0, 8))
-        print(f"✓ Minimize button created and packed")
 
-        print("Creating 'Shutdown Program' button...")
         shutdown_btn = tk.Button(secondary_row, text="Shutdown Program", command=self.shutdown_program,
                                 bg='#ff3b30', fg='white', font=('Segoe UI', 14, 'bold'),
                                 relief='flat', bd=0, padx=24, pady=16,
                                 cursor='hand2', activebackground='#e0321f',
                                 activeforeground='white')
         shutdown_btn.pack(side='left', expand=True, fill='x', padx=(8, 0))
-        print(f"✓ Shutdown button created and packed")
-
-        print("✅ ALL 4 BUTTONS CREATED SUCCESSFULLY")
-
-        # Fullscreen warning window (hidden by default)
-        self.warning_window = None
-
-        # Ensure canvas updates to show all content
-        self.root.update_idletasks()
-        print(f"UI setup complete. Total window height: {self.root.winfo_height()}px")
 
     def is_work_hours(self):
         """Check if current time is within work hours"""
@@ -2021,61 +1974,49 @@ class WorkMonitorApp:
             messagebox.showinfo("Info", "Dashboard will be generated shortly...")
 
     def show_admin_panel(self):
-        """Show admin panel with password"""
-        print("="*70)
-        print("ADMIN PANEL: Opening password dialog...")
+        """Show admin panel with password - centralized lifecycle management"""
+        # REUSE CHECK: If admin panel already exists and is valid, bring it to front
+        if self.admin_panel is not None:
+            try:
+                if self.admin_panel.winfo_exists():
+                    self.admin_panel.lift()
+                    self.admin_panel.focus_force()
+                    return
+            except tk.TclError:
+                # Window was destroyed but reference not cleared - clean up
+                self.admin_panel = None
 
-        # CRITICAL FIX: Ensure main window is visible before showing dialog
-        # If window is withdrawn (minimized to tray), the dialog parent lifecycle breaks
-        was_withdrawn = not self.root.winfo_viewable()
-        if was_withdrawn:
-            print("ADMIN PANEL: Main window was withdrawn, temporarily restoring...")
-            self.root.deiconify()
-            self.root.update_idletasks()  # Force window to become visible
+        # Create standalone toplevel for password dialog (works even if main window withdrawn)
+        dialog = tk.Toplevel(self.root)
+        dialog.withdraw()  # Hide until we're ready
+        dialog.title("Admin Login")
 
+        # Get password
+        password = simpledialog.askstring("Admin Login", "Enter admin password:",
+                                         show='*', parent=dialog)
+        dialog.destroy()  # Clean up dialog immediately
+
+        # Handle cancellation
+        if not password:
+            return
+
+        # Verify password
+        if not self.config.verify_password(password):
+            messagebox.showerror("Error", "Invalid password!")
+            return
+
+        # Password correct - create admin panel
         try:
-            password = simpledialog.askstring("Admin Login", "Enter admin password:",
-                                             show='*', parent=self.root)
-
-            # If user cancelled and window was originally withdrawn, hide it again
-            if not password:
-                print("ADMIN PANEL: User cancelled password dialog")
-                if was_withdrawn:
-                    print("ADMIN PANEL: Re-minimizing to tray...")
-                    self.root.withdraw()
-                return
-
-            print(f"ADMIN PANEL: Password entered, verifying...")
-            if self.config.verify_password(password):
-                print("ADMIN PANEL: ✓ Password correct, creating panel...")
-
-                # Store reference to prevent garbage collection
-                self.admin_panel = AdminPanel(self.root, self.config, self.logger,
-                                              self.email_sender, self.dashboard_server)
-
-                print("ADMIN PANEL: ✅ Admin panel created and stored in self.admin_panel")
-                print(f"ADMIN PANEL: Panel object type: {type(self.admin_panel)}")
-                print(f"ADMIN PANEL: Panel window exists: {self.admin_panel.winfo_exists()}")
-                print(f"ADMIN PANEL: Panel is visible: {self.admin_panel.winfo_viewable()}")
-                print("="*70)
-
-                # Keep main window visible if admin panel is open
-                # This prevents issues with modal dialogs in admin panel
-            else:
-                print("ADMIN PANEL: ❌ Invalid password")
-                messagebox.showerror("Error", "Invalid password!")
-                # Re-hide window if it was withdrawn
-                if was_withdrawn:
-                    print("ADMIN PANEL: Re-minimizing to tray...")
-                    self.root.withdraw()
+            self.admin_panel = AdminPanel(self.root, self.config, self.logger,
+                                          self.email_sender, self.dashboard_server,
+                                          on_close_callback=self._on_admin_panel_closed)
         except Exception as e:
-            print(f"ADMIN PANEL: ❌ CRITICAL ERROR: {e}")
-            import traceback
-            traceback.print_exc()
             messagebox.showerror("Error", f"Failed to open admin panel: {str(e)}")
-            # Re-hide window if it was withdrawn
-            if was_withdrawn:
-                self.root.withdraw()
+            self.admin_panel = None
+
+    def _on_admin_panel_closed(self):
+        """Callback when admin panel is closed - clear reference"""
+        self.admin_panel = None
 
     def start_overlay_widget(self):
         """Start the overlay widget subprocess"""
@@ -2227,6 +2168,28 @@ class WorkMonitorApp:
         if hasattr(self, 'dashboard_server'):
             self.dashboard_server.stop()
             print("Dashboard server stopped")
+
+        # Clean up admin panel if open
+        if self.admin_panel is not None:
+            try:
+                if self.admin_panel.winfo_exists():
+                    self.admin_panel.destroy()
+                    print("Admin panel closed")
+            except tk.TclError:
+                pass
+            finally:
+                self.admin_panel = None
+
+        # Clean up warning window if open
+        if self.warning_window is not None:
+            try:
+                if self.warning_window.winfo_exists():
+                    self.warning_window.destroy()
+                    print("Warning window closed")
+            except tk.TclError:
+                pass
+            finally:
+                self.warning_window = None
 
         # Clean up lock file
         lock_file = DATA_DIR / "app.lock"
