@@ -1539,22 +1539,22 @@ class WorkMonitorApp:
         self.root.title("WorkMonitor")
 
         # LAYOUT FIX: Set reasonable window size that fits content
-        # Content needs approximately 720px height for all controls
+        # Content needs approximately 800px height for all controls including buttons
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         print(f"Screen resolution detected: {screen_width}x{screen_height}")
 
-        # Use 750px as default height (sufficient for all content)
+        # Use 850px as default height (sufficient for all content + margin)
         # Adapt to smaller screens if needed
         window_width = 560
-        window_height = min(750, screen_height - 150)
+        window_height = min(850, screen_height - 100)
         print(f"Window size set to: {window_width}x{window_height}")
 
         self.root.geometry(f"{window_width}x{window_height}")
         self.root.configure(bg='#f5f5f7')  # Apple-style light gray
         self.root.protocol("WM_DELETE_WINDOW", self.minimize_to_tray)
         self.root.resizable(True, True)  # Allow resizing for flexibility
-        self.root.minsize(560, 650)  # Minimum size that shows all controls
+        self.root.minsize(560, 800)  # Minimum size that shows all controls including buttons
 
         # Set window icon
         icon_path = BASE_DIR / "icon.ico"
@@ -1584,12 +1584,40 @@ class WorkMonitorApp:
         """Setup the main UI with Apple 2026-inspired design"""
         print("Setting up UI...")
 
-        # LAYOUT FIX: Use clean, simple layout without broken scrollbar
-        # Main container with appropriate padding
-        main_container = tk.Frame(self.root, bg='#f5f5f7')
-        main_container.pack(fill='both', expand=True, padx=30, pady=20)
+        # LAYOUT FIX: Use scrollable layout for smaller screens, simple layout for larger screens
+        screen_height = self.root.winfo_screenheight()
+        window_height = self.root.winfo_height()
 
-        print("UI container created successfully")
+        # If screen is too small to show all content (< 800px), use scrollable canvas
+        if window_height < 800:
+            print(f"Small screen detected ({window_height}px), enabling scrollable layout...")
+            canvas = tk.Canvas(self.root, bg='#f5f5f7', highlightthickness=0)
+            scrollbar = tk.Scrollbar(self.root, orient='vertical', command=canvas.yview)
+
+            main_container = tk.Frame(canvas, bg='#f5f5f7')
+
+            main_container.bind(
+                '<Configure>',
+                lambda e: canvas.configure(scrollregion=canvas.bbox('all'))
+            )
+
+            canvas.create_window((0, 0), window=main_container, anchor='nw', width=500)
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+            canvas.pack(side='left', fill='both', expand=True)
+            scrollbar.pack(side='right', fill='y')
+
+            # Add padding frame
+            content_frame = tk.Frame(main_container, bg='#f5f5f7')
+            content_frame.pack(fill='both', expand=True, padx=30, pady=20)
+            main_container = content_frame
+            print("Scrollable UI container created")
+        else:
+            # For larger screens, use simple layout
+            print(f"Standard screen detected ({window_height}px), using simple layout...")
+            main_container = tk.Frame(self.root, bg='#f5f5f7')
+            main_container.pack(fill='both', expand=True, padx=30, pady=20)
+            print("Simple UI container created successfully")
 
         # Title Section - Bold and prominent
         title_label = tk.Label(main_container, text="WorkMonitor",
