@@ -1585,10 +1585,16 @@ class WorkMonitorApp:
 
     def setup_ui(self):
         """Setup the main UI with clean, simple layout"""
-        # Use simple pack-based layout - window size already configured appropriately
-        # All controls will be visible at default 850px height
+        # CRITICAL FIX: Pack buttons at bottom FIRST, then content above
+        # This ensures buttons are always visible regardless of content size
+
+        # Buttons frame - pack at bottom FIRST
+        buttons_container = tk.Frame(self.root, bg='#f5f5f7')
+        buttons_container.pack(side='bottom', fill='x', padx=30, pady=(0, 20))
+
+        # Content frame - pack after buttons, will fill remaining space
         main_container = tk.Frame(self.root, bg='#f5f5f7')
-        main_container.pack(fill='both', expand=True, padx=30, pady=20)
+        main_container.pack(side='top', fill='both', expand=True, padx=30, pady=(20, 10))
 
         # Title Section - Bold and prominent
         title_label = tk.Label(main_container, text="WorkMonitor",
@@ -1690,9 +1696,8 @@ class WorkMonitorApp:
                                             bg='#ffffff', fg='#98989d')
         self.inactive_timer_label.pack(pady=(12, 0))
 
-        # Buttons Section
-        buttons_frame = tk.Frame(main_container, bg='#f5f5f7')
-        buttons_frame.pack(fill='x', pady=(14, 0))
+        # Buttons Section - Now in buttons_container (packed at bottom)
+        buttons_frame = buttons_container  # Use the bottom-pinned container
 
         # Primary Actions (Row 1)
         primary_row = tk.Frame(buttons_frame, bg='#f5f5f7')
