@@ -1084,7 +1084,18 @@ class AdminPanel(tk.Toplevel):
         self.resizable(True, True)
         self.minsize(700, 900)
 
+        # Make sure window appears on top and is visible
+        self.transient(parent)  # Make window appear on top of parent
+        self.lift()  # Bring to front
+        self.focus_force()  # Grab focus
+
         self.create_widgets()
+
+        # Center window on screen
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (700 // 2)
+        y = (self.winfo_screenheight() // 2) - (900 // 2)
+        self.geometry(f'700x900+{x}+{y}')
 
     def create_widgets(self):
         """Create admin panel widgets with modern, sectioned design"""
@@ -1511,11 +1522,11 @@ class WorkMonitorApp:
         # Create main window with Apple-inspired design
         self.root = tk.Tk()
         self.root.title("WorkMonitor")
-        self.root.geometry("560x800")  # Larger for better spacing and all controls
+        self.root.geometry("560x950")  # Increased height to show all controls including buttons
         self.root.configure(bg='#f5f5f7')  # Apple-style light gray
         self.root.protocol("WM_DELETE_WINDOW", self.minimize_to_tray)
         self.root.resizable(True, True)  # Allow resizing for flexibility
-        self.root.minsize(560, 800)  # Minimum size to show all controls
+        self.root.minsize(560, 950)  # Minimum size to show all controls
 
         # Set window icon
         icon_path = BASE_DIR / "icon.ico"
@@ -1543,9 +1554,9 @@ class WorkMonitorApp:
 
     def setup_ui(self):
         """Setup the main UI with Apple 2026-inspired design"""
-        # Main container with generous padding
+        # Main container with padding optimized for 950px height
         main_container = tk.Frame(self.root, bg='#f5f5f7')
-        main_container.pack(fill='both', expand=True, padx=40, pady=40)
+        main_container.pack(fill='both', expand=True, padx=30, pady=25)
 
         # Title Section - Bold and prominent
         title_label = tk.Label(main_container, text="WorkMonitor",
@@ -1935,13 +1946,18 @@ class WorkMonitorApp:
 
     def show_admin_panel(self):
         """Show admin panel with password"""
-        password = simpledialog.askstring("Admin Login", "Enter admin password:",
-                                         show='*', parent=self.root)
-        if password and self.config.verify_password(password):
-            # Store reference to prevent garbage collection
-            self.admin_panel = AdminPanel(self.root, self.config, self.logger, self.email_sender, self.dashboard_server)
-        elif password:
-            messagebox.showerror("Error", "Invalid password!")
+        try:
+            password = simpledialog.askstring("Admin Login", "Enter admin password:",
+                                             show='*', parent=self.root)
+            if password and self.config.verify_password(password):
+                # Store reference to prevent garbage collection
+                self.admin_panel = AdminPanel(self.root, self.config, self.logger, self.email_sender, self.dashboard_server)
+                print("Admin panel created successfully")
+            elif password:
+                messagebox.showerror("Error", "Invalid password!")
+        except Exception as e:
+            print(f"Error opening admin panel: {e}")
+            messagebox.showerror("Error", f"Failed to open admin panel: {str(e)}")
 
     def start_overlay_widget(self):
         """Start the overlay widget subprocess"""
