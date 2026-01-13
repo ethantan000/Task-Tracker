@@ -131,6 +131,8 @@ DEFAULT_CONFIG = {
     # Network dashboard settings
     "dashboard_server_enabled": False,
     "dashboard_port": 8080,
+    # Autostart settings
+    "autostart_enabled": True,
 }
 
 
@@ -1221,6 +1223,29 @@ class AdminPanel(tk.Toplevel):
                         bg='#e8f5e9', fg='#2e7d32',
                         font=('SF Pro Text', 12, 'bold')).pack(padx=12, pady=8)
 
+        # SECTION 5: Startup Settings
+        self._create_section(scrollable_frame, "Startup", "Application launch behavior")
+        startup_card = self._create_card(scrollable_frame)
+
+        self.autostart_enabled = tk.BooleanVar(value=self.config.get('autostart_enabled'))
+        autostart_check = tk.Checkbutton(startup_card, text="Start automatically with Windows",
+                                        variable=self.autostart_enabled, bg='#ffffff',
+                                        font=('SF Pro Text', 13), fg='#1d1d1f',
+                                        activebackground='#ffffff', selectcolor='#f5f5f7')
+        autostart_check.pack(anchor='w', pady=8)
+
+        # Show current autostart status
+        current_status = check_autostart_enabled()
+        status_color = '#e8f5e9' if current_status else '#fff3e0'
+        status_text_color = '#2e7d32' if current_status else '#e65100'
+        status_text = "✓ Currently enabled in Windows startup" if current_status else "○ Currently disabled in Windows startup"
+
+        status_frame = tk.Frame(startup_card, bg=status_color, relief='flat', bd=0)
+        status_frame.pack(fill='x', pady=8)
+        tk.Label(status_frame, text=status_text,
+                bg=status_color, fg=status_text_color,
+                font=('SF Pro Text', 11)).pack(padx=12, pady=6)
+
         # Action Buttons Section
         buttons_frame = tk.Frame(scrollable_frame, bg='#f5f5f7')
         buttons_frame.pack(fill='x', pady=(30, 0))
@@ -1308,6 +1333,20 @@ class AdminPanel(tk.Toplevel):
             # Save network dashboard settings
             self.config.set('dashboard_server_enabled', self.dashboard_server_enabled.get())
             self.config.set('dashboard_port', int(self.dashboardport.get()))
+
+            # Save autostart settings and apply changes
+            autostart_setting = self.autostart_enabled.get()
+            self.config.set('autostart_enabled', autostart_setting)
+
+            # Apply autostart changes to Windows registry
+            if autostart_setting:
+                success = setup_autostart()
+                if not success:
+                    messagebox.showwarning("Warning", "Settings saved but autostart setup failed.\n\nCheck permissions and try again.")
+            else:
+                success = remove_autostart()
+                if not success:
+                    messagebox.showwarning("Warning", "Settings saved but autostart removal failed.\n\nCheck permissions and try again.")
 
             messagebox.showinfo("Success", "✓ Settings saved successfully!\n\nRestart the app to apply changes.")
             self.destroy()
@@ -2091,6 +2130,47 @@ def setup_autostart():
         return False
 
 
+def remove_autostart():
+    """Remove Windows autostart entry"""
+    import winreg
+
+    key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
+        winreg.DeleteValue(key, APP_NAME)
+        winreg.CloseKey(key)
+        print(f"Autostart disabled for {APP_NAME}")
+        return True
+    except FileNotFoundError:
+        # Entry doesn't exist, which is fine
+        print(f"Autostart entry for {APP_NAME} not found (already disabled)")
+        return True
+    except Exception as e:
+        print(f"Autostart removal error: {e}")
+        return False
+
+
+def check_autostart_enabled():
+    """Check if autostart is currently enabled in Windows registry"""
+    import winreg
+
+    key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_READ)
+        try:
+            winreg.QueryValueEx(key, APP_NAME)
+            winreg.CloseKey(key)
+            return True
+        except FileNotFoundError:
+            winreg.CloseKey(key)
+            return False
+    except Exception as e:
+        print(f"Error checking autostart status: {e}")
+        return False
+
+
 def set_windows_appid():
     """Set Windows AppUserModelID for proper taskbar display"""
     try:
@@ -2166,10 +2246,19 @@ def main():
     # Set Windows app ID for proper taskbar/task manager display
     set_windows_appid()
 
-    # Setup autostart on first run
-    if not CONFIG_FILE.exists():
-        setup_autostart()
-        print("Autostart configured. Application will run on Windows startup.")
+    # Setup autostart based on config setting
+    # Load config early to check autostart preference
+    temp_config = Config()
+    if temp_config.get('autostart_enabled'):
+        # Ensure autostart is set up if enabled in config
+        if not check_autostart_enabled():
+            setup_autostart()
+            print("Autostart configured. Application will run on Windows startup.")
+    else:
+        # Ensure autostart is removed if disabled in config
+        if check_autostart_enabled():
+            remove_autostart()
+            print("Autostart disabled. Application will not run on Windows startup.")
 
     # Create app instance
     app = WorkMonitorApp()
