@@ -69,7 +69,7 @@ export default function DashboardPage() {
     if (!activityData) return null;
 
     // Daily view
-    if (activeTab === 'daily' && 'work_seconds' in activityData) {
+    if (activeTab === 'daily' && activityData && typeof activityData === 'object' && 'work_seconds' in activityData) {
       const workSeconds = activityData.work_seconds || 0;
       const idleSeconds = activityData.idle_seconds || 0;
       const suspiciousSeconds = activityData.suspicious_seconds || 0;
@@ -169,7 +169,7 @@ export default function DashboardPage() {
     }
 
     // Summary view (weekly, monthly, yearly)
-    if ('total_work_seconds' in activityData) {
+    if (activityData && typeof activityData === 'object' && 'total_work_seconds' in activityData) {
       const totalWork = activityData.total_work_seconds || 0;
       const totalIdle = activityData.total_idle_seconds || 0;
       const totalSuspicious = activityData.total_suspicious_seconds || 0;
