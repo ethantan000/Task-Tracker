@@ -1519,8 +1519,9 @@ class WorkMonitorApp:
         # Initialize email report sender
         self.email_sender = EmailReportSender(self.config, ActivityLogger)
 
-        # Initialize dashboard server
-        self.dashboard_server = DashboardServer(self.config, BASE_DIR)
+        # Dashboard server has been replaced by FastAPI backend (see /api directory)
+        # Keeping this as None for backward compatibility with UI code
+        self.dashboard_server = None
 
         self.running = True
         self.is_working = False
@@ -1573,9 +1574,9 @@ class WorkMonitorApp:
         if self.config.get('email_enabled'):
             self.email_sender.start_scheduler()
 
-        # Start dashboard server if enabled
-        if self.config.get('dashboard_server_enabled'):
-            self.dashboard_server.start()
+        # Note: Dashboard server has been replaced by FastAPI backend
+        # Start it separately with: python api/main.py
+        # Or: cd api && uvicorn main:app --reload
 
         # Cleanup old screenshots on start
         removed = self.screenshot_manager.cleanup_old()
@@ -2169,7 +2170,7 @@ class WorkMonitorApp:
             print("Email scheduler stopped")
 
         # Stop dashboard server
-        if hasattr(self, 'dashboard_server'):
+        if hasattr(self, 'dashboard_server') and self.dashboard_server is not None:
             self.dashboard_server.stop()
             print("Dashboard server stopped")
 
