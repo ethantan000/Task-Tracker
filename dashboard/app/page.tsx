@@ -10,7 +10,9 @@ import { Typography } from '@/components/atoms/Typography';
 import { Badge, StatusDot } from '@/components/atoms/Badge';
 import { StatCard } from '@/components/molecules/StatCard';
 import { TabNavigation } from '@/components/molecules/TabNavigation';
+import { CollapsibleSection } from '@/components/molecules/CollapsibleSection';
 import { StatCardSkeleton } from '@/components/atoms/Skeleton';
+import { ScreenshotGallery } from '@/components/organisms/ScreenshotGallery';
 import { useActivityData, useConfig, useRealtime } from '@/hooks/useActivityData';
 import { formatTime, formatDate, isWithinOfficeHours } from '@/lib/utils';
 import { pageTransition, staggerContainer, staggerItem } from '@/lib/animations';
@@ -331,7 +333,29 @@ export default function DashboardPage() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Additional Info */}
+        {/* Screenshots Section - Daily View Only */}
+        {!isLoading && activityData && 'screenshots' in activityData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            <CollapsibleSection
+              title="Screenshots"
+              count={activityData.screenshots?.length || 0}
+              icon="📸"
+              defaultOpen={false}
+            >
+              <ScreenshotGallery
+                screenshots={activityData.screenshots || []}
+                title=""
+                emptyMessage="No screenshots captured today"
+              />
+            </CollapsibleSection>
+          </motion.div>
+        )}
+
+        {/* Daily Breakdown - Summary Views */}
         {activityData && 'daily_breakdown' in activityData && (
           <motion.div
             className="glass-card p-6"
