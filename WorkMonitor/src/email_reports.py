@@ -277,5 +277,99 @@ class EmailReportSender:
 
     def send_test_email(self):
         """Send a test email immediately (for testing configuration)"""
-        print("Sending test email...")
-        return self.send_email_report()
+        try:
+            # Check if email is configured
+            if not self.config.get('email_enabled'):
+                print("Email reports are disabled in settings")
+                return False
+
+            email_to = self.config.get('email_to')
+            email_from = self.config.get('email_from')
+            smtp_server = self.config.get('smtp_server')
+            smtp_port = self.config.get('smtp_port')
+            smtp_username = self.config.get('smtp_username')
+            smtp_password = self.config.get('smtp_password')
+            smtp_use_tls = self.config.get('smtp_use_tls', True)
+
+            # Validate configuration
+            if not all([email_to, email_from, smtp_server, smtp_username, smtp_password]):
+                print("Email configuration incomplete. Please configure in Admin Panel.")
+                return False
+
+            # Create simple test email
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = "Test Email - Work Monitor"
+            msg['From'] = email_from
+            msg['To'] = email_to
+
+            # Create simple HTML test message
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: 0 auto; background-color: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center; }}
+        .content {{ padding: 30px; color: #333; line-height: 1.6; }}
+        .success-icon {{ font-size: 48px; text-align: center; margin: 20px 0; }}
+        .footer {{ background-color: #f5f5f5; padding: 20px; text-align: center; color: #666; font-size: 14px; border-radius: 0 0 10px 10px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✓ Test Email Successful</h1>
+        </div>
+        <div class="content">
+            <div class="success-icon">✉️</div>
+            <p>Congratulations! Your SMTP configuration is working correctly.</p>
+            <p>This test email was sent from <strong>Work Monitor</strong> to verify your email settings.</p>
+            <p><strong>Configuration Details:</strong></p>
+            <ul>
+                <li>SMTP Server: {smtp_server}</li>
+                <li>SMTP Port: {smtp_port}</li>
+                <li>From: {email_from}</li>
+                <li>To: {email_to}</li>
+            </ul>
+            <p>Your weekly reports will be sent to this email address automatically.</p>
+        </div>
+        <div class="footer">
+            <p><strong>Work Monitor</strong> - Test Email</p>
+            <p>Sent on {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</p>
+        </div>
+    </div>
+</body>
+</html>
+            """
+
+            # Attach HTML content
+            html_part = MIMEText(html_content, 'html')
+            msg.attach(html_part)
+
+            # Send email
+            print(f"Sending test email to {email_to}...")
+
+            if smtp_use_tls:
+                server = smtplib.SMTP(smtp_server, smtp_port)
+                server.starttls()
+            else:
+                server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+
+            server.login(smtp_username, smtp_password)
+            server.sendmail(email_from, email_to, msg.as_string())
+            server.quit()
+
+            print(f"✓ Test email sent successfully to {email_to}")
+            return True
+
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"✗ Email authentication failed: {e}")
+            return False
+        except smtplib.SMTPException as e:
+            print(f"✗ SMTP error: {e}")
+            return False
+        except Exception as e:
+            print(f"✗ Error sending test email: {e}")
+            return False
