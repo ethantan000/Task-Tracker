@@ -298,6 +298,12 @@ async def get_today_activity():
         # Calculate real work time
         data["real_work_seconds"] = data["work_seconds"] - data["suspicious_seconds"]
         data["screenshot_count"] = len(data.get("screenshots", []))
+
+        # Add URL to each screenshot
+        for screenshot in data.get("screenshots", []):
+            filename = Path(screenshot["path"]).name
+            screenshot["url"] = f"/api/screenshots/file/{filename}"
+
         return data
     except Exception as e:
         logger.error(f"Error loading today's activity: {e}")
@@ -316,6 +322,12 @@ async def get_date_activity(date: str):
         # Calculate real work time
         data["real_work_seconds"] = data["work_seconds"] - data["suspicious_seconds"]
         data["screenshot_count"] = len(data.get("screenshots", []))
+
+        # Add URL to each screenshot
+        for screenshot in data.get("screenshots", []):
+            filename = Path(screenshot["path"]).name
+            screenshot["url"] = f"/api/screenshots/file/{filename}"
+
         return data
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
