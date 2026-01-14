@@ -26,7 +26,6 @@ import statistics
 from collections import deque
 import psutil
 from email_reports import EmailReportSender
-from dashboard_server import DashboardServer
 
 # Configure logging
 logging.basicConfig(
