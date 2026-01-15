@@ -1,0 +1,73 @@
+{
+  "name": "task-tracker-desktop",
+  "version": "2.0.0",
+  "description": "Task-Tracker Desktop Application",
+  "main": "main.js",
+  "author": "Task-Tracker",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder build --win --x64",
+    "build-portable": "electron-builder build --win --x64 --config.win.target=portable",
+    "pack": "electron-builder --dir"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.0"
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.tasktracker.desktop",
+    "productName": "Task-Tracker",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../pyinstaller/dist/TaskTrackerAPI.exe",
+        "to": "bin/TaskTrackerAPI.exe"
+      },
+      {
+        "from": "../pyinstaller/dist/TaskTrackerMonitor.exe",
+        "to": "bin/TaskTrackerMonitor.exe"
+      },
+      {
+        "from": "../../WorkMonitor/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "../../WorkMonitor/icon.ico",
+      "publisherName": "Task-Tracker",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Task-Tracker",
+      "installerIcon": "../../WorkMonitor/icon.ico",
+      "uninstallerIcon": "../../WorkMonitor/icon.ico",
+      "installerHeaderIcon": "../../WorkMonitor/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "license": "../../LICENSE.txt"
+    }
+  }
+}
