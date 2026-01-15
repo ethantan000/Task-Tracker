@@ -1,0 +1,33 @@
+# UTF-8
+#
+# For more details about fixed file info:
+# See: https://docs.microsoft.com/en-us/windows/win32/menurc/versioninfo-resource
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(2, 0, 0, 0),
+    prodvers=(2, 0, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        u'040904B0',
+        [StringStruct(u'CompanyName', u'Task-Tracker'),
+        StringStruct(u'FileDescription', u'Task-Tracker API Backend Server'),
+        StringStruct(u'FileVersion', u'2.0.0.0'),
+        StringStruct(u'InternalName', u'TaskTrackerAPI'),
+        StringStruct(u'LegalCopyright', u'Copyright (c) 2026'),
+        StringStruct(u'OriginalFilename', u'TaskTrackerAPI.exe'),
+        StringStruct(u'ProductName', u'Task-Tracker API'),
+        StringStruct(u'ProductVersion', u'2.0.0.0')])
+      ]
+    ),
+    VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
+  ]
+)
