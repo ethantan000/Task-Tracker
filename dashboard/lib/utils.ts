@@ -17,6 +17,7 @@ export function cn(...inputs: ClassValue[]) {
  * Format seconds into human-readable time string
  */
 export function formatTime(seconds: number): string {
+  seconds = Math.max(0, seconds);
   if (seconds < 60) {
     return `${seconds}s`;
   } else if (seconds < 3600) {

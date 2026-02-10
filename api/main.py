@@ -15,6 +15,7 @@ import json
 import base64
 import logging
 from typing import Optional, Dict, List, Any
+from contextlib import asynccontextmanager
 import asyncio
 from collections import defaultdict
 
@@ -195,11 +196,19 @@ def load_config() -> Dict:
             logger.error(f"Failed to load config: {e}")
     return {}
 
+@asynccontextmanager
+async def lifespan(app):
+    """Startup and shutdown lifecycle"""
+    asyncio.create_task(watch_data_changes())
+    logger.info("FastAPI server started. Data watcher active.")
+    yield
+
 # FastAPI app
 app = FastAPI(
     title="Task-Tracker API",
     description="Real-time activity monitoring API",
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware for local development
@@ -222,16 +231,26 @@ class ConnectionManager:
         logger.info(f"WebSocket connected. Total connections: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        try:
+            self.active_connections.remove(websocket)
+        except ValueError:
+            pass
         logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
 
     async def broadcast(self, message: Dict):
         """Broadcast message to all connected clients"""
+        dead_connections = []
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
             except Exception as e:
                 logger.error(f"Error broadcasting to client: {e}")
+                dead_connections.append(connection)
+        for dead in dead_connections:
+            try:
+                self.active_connections.remove(dead)
+            except ValueError:
+                pass
 
 manager = ConnectionManager()
 
@@ -258,12 +277,6 @@ async def watch_data_changes():
             logger.error(f"Error watching data changes: {e}")
 
         await asyncio.sleep(5)  # Check every 5 seconds
-
-@app.on_event("startup")
-async def startup_event():
-    """Start background tasks on app startup"""
-    asyncio.create_task(watch_data_changes())
-    logger.info("FastAPI server started. Data watcher active.")
 
 # API Endpoints
 
@@ -296,7 +309,7 @@ async def get_today_activity():
     try:
         data = load_today()
         # Calculate real work time
-        data["real_work_seconds"] = data["work_seconds"] - data["suspicious_seconds"]
+        data["real_work_seconds"] = data.get("work_seconds", 0) - data.get("suspicious_seconds", 0)
         data["screenshot_count"] = len(data.get("screenshots", []))
 
         # Add URL to each screenshot
@@ -320,7 +333,7 @@ async def get_date_activity(date: str):
             raise HTTPException(status_code=404, detail=f"No data found for date {date}")
 
         # Calculate real work time
-        data["real_work_seconds"] = data["work_seconds"] - data["suspicious_seconds"]
+        data["real_work_seconds"] = data.get("work_seconds", 0) - data.get("suspicious_seconds", 0)
         data["screenshot_count"] = len(data.get("screenshots", []))
 
         # Add URL to each screenshot
@@ -425,7 +438,9 @@ async def get_date_screenshots(date: str):
 async def get_screenshot_file(filename: str):
     """Serve a screenshot image file"""
     try:
-        file_path = SCREENSHOTS_DIR / filename
+        file_path = (SCREENSHOTS_DIR / filename).resolve()
+        if not str(file_path).startswith(str(SCREENSHOTS_DIR.resolve())):
+            raise HTTPException(status_code=404, detail="Screenshot not found")
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="Screenshot not found")
 
@@ -582,6 +597,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 def format_time(seconds: int) -> str:
     """Format seconds into human-readable time string"""
+    seconds = max(0, seconds)
     if seconds < 60:
         return f"{seconds}s"
     elif seconds < 3600:

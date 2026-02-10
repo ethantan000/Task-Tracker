@@ -9,13 +9,14 @@ import { ReactNode, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 import { springs } from '@/lib/animations';
 
-export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
+export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref' | 'children'> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   icon?: ReactNode;
   iconPosition?: 'left' | 'right';
   loading?: boolean;
   fullWidth?: boolean;
+  children?: ReactNode;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

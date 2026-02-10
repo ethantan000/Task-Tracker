@@ -6,7 +6,6 @@
  */
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { Typography } from '@/components/atoms/Typography';
 import { Badge } from '@/components/atoms/Badge';
 import { formatTimeOnly } from '@/lib/utils';
