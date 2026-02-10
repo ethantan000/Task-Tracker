@@ -16,7 +16,15 @@ import { ScreenshotGallery } from '@/components/organisms/ScreenshotGallery';
 import { useActivityData, useConfig, useRealtime } from '@/hooks/useActivityData';
 import { formatTime, formatDate, isWithinOfficeHours } from '@/lib/utils';
 import { pageTransition, staggerContainer, staggerItem } from '@/lib/animations';
-import type { ViewPeriod } from '@/types/activity';
+import type { ViewPeriod, ActivityLog, DateRangeSummary } from '@/types/activity';
+
+function isActivityLog(data: ActivityLog | DateRangeSummary): data is ActivityLog {
+  return 'work_seconds' in data;
+}
+
+function isDateRangeSummary(data: ActivityLog | DateRangeSummary): data is DateRangeSummary {
+  return 'total_work_seconds' in data;
+}
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<ViewPeriod>('daily');
@@ -69,7 +77,7 @@ export default function DashboardPage() {
     if (!activityData) return null;
 
     // Daily view
-    if (activeTab === 'daily' && activityData && typeof activityData === 'object' && 'work_seconds' in activityData) {
+    if (activeTab === 'daily' && isActivityLog(activityData)) {
       const workSeconds = activityData.work_seconds || 0;
       const idleSeconds = activityData.idle_seconds || 0;
       const suspiciousSeconds = activityData.suspicious_seconds || 0;
@@ -169,7 +177,7 @@ export default function DashboardPage() {
     }
 
     // Summary view (weekly, monthly, yearly)
-    if (activityData && typeof activityData === 'object' && 'total_work_seconds' in activityData) {
+    if (isDateRangeSummary(activityData)) {
       const totalWork = activityData.total_work_seconds || 0;
       const totalIdle = activityData.total_idle_seconds || 0;
       const totalSuspicious = activityData.total_suspicious_seconds || 0;
@@ -334,7 +342,7 @@ export default function DashboardPage() {
         </AnimatePresence>
 
         {/* Screenshots Section - Daily View Only */}
-        {!isLoading && activityData && 'screenshots' in activityData && (
+        {!isLoading && activityData && isActivityLog(activityData) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -356,7 +364,7 @@ export default function DashboardPage() {
         )}
 
         {/* Daily Breakdown - Summary Views */}
-        {activityData && 'daily_breakdown' in activityData && (
+        {activityData && isDateRangeSummary(activityData) && (
           <motion.div
             className="glass-card p-6"
             initial={{ opacity: 0 }}
@@ -367,7 +375,7 @@ export default function DashboardPage() {
               Daily Breakdown
             </Typography>
             <div className="space-y-3">
-              {activityData.daily_breakdown.slice(0, 7).map((day, index) => (
+              {activityData.daily_breakdown.slice(0, 7).map((day: DateRangeSummary['daily_breakdown'][number], index: number) => (
                 <motion.div
                   key={day.date}
                   className="flex items-center justify-between p-4 bg-white/30 rounded-apple-lg"

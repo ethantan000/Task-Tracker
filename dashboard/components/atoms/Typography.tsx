@@ -77,10 +77,25 @@ export function Typography({
   // Determine default font family based on variant
   const fontFamily = mono ? 'font-mono' : variant.includes('display') ? 'font-display' : 'font-text';
 
+  const variantStyles: Record<string, string> = {
+    'display-large': 'text-display-large',
+    'display': 'text-display',
+    'title-1': 'text-title-1',
+    'title-2': 'text-title-2',
+    'title-3': 'text-title-3',
+    'headline': 'text-headline',
+    'body': 'text-body',
+    'callout': 'text-callout',
+    'subhead': 'text-subhead',
+    'footnote': 'text-footnote',
+    'caption-1': 'text-caption-1',
+    'caption-2': 'text-caption-2',
+  };
+
   return (
     <Component
       className={cn(
-        `text-${variant}`,
+        variantStyles[variant],
         fontFamily,
         colorStyles[color],
         weight && weightStyles[weight],

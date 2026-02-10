@@ -5,14 +5,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { api } from '@/lib/api';
-import type { ViewPeriod } from '@/types/activity';
+import type { ViewPeriod, ActivityLog, DateRangeSummary, StatsResponse, SummaryStats } from '@/types/activity';
 
 export function useActivityData(period: ViewPeriod) {
   const queryKey = ['activity', period];
 
-  return useQuery({
+  return useQuery<ActivityLog | DateRangeSummary>({
     queryKey,
-    queryFn: () => {
+    queryFn: (): Promise<ActivityLog | DateRangeSummary> => {
       switch (period) {
         case 'daily':
           return api.getTodayActivity();
@@ -68,9 +68,9 @@ export function useYearActivity() {
 export function useStats(period: ViewPeriod) {
   const queryKey = ['stats', period];
 
-  return useQuery({
+  return useQuery<StatsResponse | SummaryStats>({
     queryKey,
-    queryFn: () => {
+    queryFn: (): Promise<StatsResponse | SummaryStats> => {
       switch (period) {
         case 'daily':
           return api.getTodayStats();
